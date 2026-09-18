@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Berberim Club, onaylı üyelikle çalışan modern saç, sakal, manikür ve pedikür bakım kulübü deneyimi."
+    />
+    <meta name="theme-color" content="#171311" />
+    <title>Berberim Club | Üyelere Özel Bakım Kulübü</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="preload" href="./assets/private-studio-hero.png" as="image" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar" aria-label="Ana gezinme">
+        <a class="brand" href="#home" aria-label="Berberim Club ana ekran">
+          <span class="brand-mark">B</span>
+          <span>Berberim Club</span>
+        </a>
+        <nav class="desktop-nav" aria-label="Sayfa bölümleri">
+          <a href="#membership">Üyelik</a>
+          <a href="#levels">Seviyeler</a>
+          <a href="#services">Hizmetler</a>
+          <a href="#team">Ekip</a>
+          <a href="#experience">Deneyim</a>
+          <a href="#ops">İşletme</a>
+        </nav>
+        <a class="topbar-action" href="#apply">Başvuru</a>
+      </header>
+
+      <main id="home">
+        <section class="hero" aria-labelledby="hero-title">
+          <img
+            class="hero-image"
+            src="./assets/private-studio-hero.png"
+            alt="Sıcak ışıklı özel berber stüdyosunda deri berber koltuğu ve bakım araçları"
+          />
+          <div class="hero-scrim"></div>
+          <div class="hero-content">
+            <p class="eyebrow">Davetli üyelik modeli</p>
+            <h1 id="hero-title">Kişisel bakım için seçilmiş bir üyelik deneyimi.</h1>
+            <p class="hero-copy">
+              Berberim Club; saç, sakal, manikür ve pedikür bakımını üyeyi tanıyan, kapasiteyi koruyan ve kişisel
+              tercihleri hatırlayan seçici bir kulüp deneyimine dönüştürür.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#apply">Üyelik başvurusu yap</a>
+              <a class="button button-secondary" href="#member">Demo üye paneli</a>
+            </div>
+            <div class="hero-proof" aria-label="Ürün ilkeleri">
+              <span>Onaylı üyelik</span>
+              <span>Saç, sakal, el ve ayak bakımı</span>
+              <span>Sınırlı seans erişimi</span>
+            </div>
+          </div>
+          <aside class="hero-status" aria-label="Bugünkü kulüp durumu">
+            <span>Bugün</span>
+            <strong>12 onaylı üye</strong>
+            <small>5 bakım seansı yönetici davetiyle açıldı</small>
+          </aside>
+        </section>
+
+        <section class="control-band" aria-label="Üyelik sistemi özeti">
+          <article>
+            <span>01</span>
+            <h2>Başvuru</h2>
+            <p>Aday üye kendini, bakım beklentisini ve tercih ettiği ziyaret ritmini paylaşır.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h2>Onay</h2>
+            <p>İşletme kapasite, hizmet uyumu ve davet koduna göre üyeliği onaylar ya da bekletir.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h2>Erişim</h2>
+            <p>Üye yalnızca kendisine açılan seansları, bakım notlarını ve hizmet ayrıcalıklarını görür.</p>
+          </article>
+        </section>
+
+        <section class="workspace" id="membership" aria-label="Üyelik panosu">
+          <div class="section-heading">
+            <p class="eyebrow">Seçici erişim</p>
+            <h2>Kalabalık saat listeleri yerine sakin, kontrollü ve üyeye özel bir akış.</h2>
+          </div>
+          <div class="membership-grid">
+            <article class="panel panel-dark" id="apply">
+              <div class="panel-heading">
+                <span class="panel-kicker">Aday üye</span>
+                <h3>Başvuru formu</h3>
+              </div>
+              <div class="application-steps" aria-label="Başvuru adımları">
+                <span class="active">Başvuru</span>
+                <span>İnceleme</span>
+                <span>Davet</span>
+                <span>Üyelik</span>
+              </div>
+              <form class="apply-form" id="applicationForm">
+                <label>
+                  Ad soyad
+                  <input name="name" autocomplete="name" placeholder="Örn. Çağrı Zaman" required />
+                </label>
+                <label>
+                  Telefon
+                  <input name="phone" inputmode="tel" autocomplete="tel" placeholder="+90 5xx xxx xx xx" required />
+                </label>
+                <label>
+                  Davet kodu
+                  <input name="code" placeholder="Varsa işletmeden alınan kod" />
+                </label>
+                <label>
+                  Ana bakım seti
+                  <select name="intent">
+                    <option>Saç kesimi</option>
+                    <option>Saç kesimi ve sakal tasarım</option>
+                    <option>El ve ayak bakımı</option>
+                    <option>Özel gün hazırlığı</option>
+                    <option>Kurumsal/yoğun program bakımı</option>
+                  </select>
+                </label>
+                <fieldset class="set-picker">
+                  <legend>Ek bakım setleri</legend>
+                  <label><input type="checkbox" name="sets" value="Sakal tasarım" /> Sakal tasarım</label>
+                  <label><input type="checkbox" name="sets" value="Manikür" /> Manikür</label>
+                  <label><input type="checkbox" name="sets" value="Pedikür" /> Pedikür</label>
+                  <label><input type="checkbox" name="sets" value="Cilt ve ense bakımı" /> Cilt ve ense bakımı</label>
+                </fieldset>
+                <label>
+                  Not
+                  <textarea name="note" rows="4" placeholder="Zaman tercihi, hassasiyet, önceki bakım notu"></textarea>
+                </label>
+                <button class="button button-primary" type="submit">Başvuruyu kaydet</button>
+              </form>
+            </article>
+
+            <article class="panel" id="member">
+              <div class="panel-heading">
+                <span class="panel-kicker">Onaylı üye</span>
+                <h3>Kişisel erişim</h3>
+              </div>
+              <div class="member-identity">
+                <div class="avatar" aria-hidden="true">CZ</div>
+                <div>
+                  <strong>Çağrı Z.</strong>
+                  <span>Atelier üye · 6 ziyaret</span>
+                </div>
+              </div>
+              <div class="member-card">
+                <div>
+                  <span>Üyelik seviyesi</span>
+                  <strong>Atelier</strong>
+                </div>
+                <div>
+                  <span>Sıradaki bakım</span>
+                  <strong>Saç kesimi + manikür + pedikür</strong>
+                </div>
+                <div>
+                  <span>Stil notu</span>
+                  <strong>Yanlar kısa, üst doğal; el bakımında mat bitiş</strong>
+                </div>
+              </div>
+              <div class="active-sets" aria-label="Aktif bakım setleri">
+                <span>Saç kesimi</span>
+                <span>Sakal tasarım</span>
+                <span>Manikür</span>
+                <span>Pedikür</span>
+              </div>
+              <div class="member-levels" aria-label="Üyelik seviyeleri">
+                <span>Essential</span>
+                <span class="selected">Atelier</span>
+                <span>Private</span>
+              </div>
+              <div class="slot-list" aria-label="Üyeye açılan zamanlar">
+                <button class="slot active" type="button">
+                  <span>Cuma</span>
+                  <strong>19:30</strong>
+                  <small>Saç, sakal ve manikür</small>
+                </button>
+                <button class="slot" type="button">
+                  <span>Pazar</span>
+                  <strong>11:00</strong>
+                  <small>Pedikür ve bakım kontrolü</small>
+                </button>
+                <button class="slot locked" type="button" aria-disabled="true">
+                  <span>Salı</span>
+                  <strong>Kapalı</strong>
+                  <small>Yönetici açmadı</small>
+                </button>
+              </div>
+              <div class="care-history" aria-label="Bakım geçmişi">
+                <div class="history-heading">
+                  <span class="panel-kicker">Bakım geçmişi</span>
+                  <strong>Son ziyaretler</strong>
+                </div>
+                <ol>
+                  <li><span>12 Eyl</span><strong>Saç + sakal</strong><small>Yanlar 1.5, ense doğal</small></li>
+                  <li><span>29 Ağu</span><strong>Manikür</strong><small>Mat bitiş, kısa tırnak formu</small></li>
+                  <li><span>16 Ağu</span><strong>Pedikür</strong><small>Konfor bakımı, hassas topuk notu</small></li>
+                </ol>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="levels" id="levels" aria-label="Berberim Club üyelik seviyeleri">
+          <div class="section-heading">
+            <p class="eyebrow">Üyelik seviyeleri</p>
+            <h2>Seviye, üyeyi sınırlamak için değil; doğru seti doğru öncelikle açmak için kullanılır.</h2>
+          </div>
+          <div class="level-grid">
+            <article class="level-card">
+              <div class="level-topline">
+                <span>Essential</span>
+                <strong>Başlangıç</strong>
+              </div>
+              <h3>Düzenli temel bakım</h3>
+              <p>Saç kesimi, sakal düzeni ve temel bakım notlarıyla kulübe kontrollü giriş.</p>
+              <ul>
+                <li>Saç kesimi</li>
+                <li>Sakal düzenleme</li>
+                <li>Standart seans erişimi</li>
+              </ul>
+            </article>
+            <article class="level-card featured-level">
+              <div class="level-topline">
+                <span>Atelier</span>
+                <strong>Önerilen</strong>
+              </div>
+              <h3>Kombin bakım akışı</h3>
+              <p>Saç, sakal ve el bakımını tek seans içinde planlayan öncelikli üyelik.</p>
+              <ul>
+                <li>Saç + sakal + manikür</li>
+                <li>Öncelikli seans önerisi</li>
+                <li>Kişisel stil hafızası</li>
+              </ul>
+            </article>
+            <article class="level-card">
+              <div class="level-topline">
+                <span>Private</span>
+                <strong>Davetli</strong>
+              </div>
+              <h3>Tam bakım günü</h3>
+              <p>Saç, sakal, manikür, pedikür ve özel gün hazırlığını tek ritimde birleştirir.</p>
+              <ul>
+                <li>Tüm bakım setleri</li>
+                <li>Kapalı saat talebi</li>
+                <li>Özel hazırlık planı</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="services" id="services" aria-label="Berberim Club hizmetleri">
+          <div class="section-heading">
+            <p class="eyebrow">Bakım menüsü</p>
+            <h2>Üye tek bir hizmete bağlı kalmaz; bakım setlerini birlikte seçebilir.</h2>
+          </div>
+          <div class="combo-strip" aria-label="Örnek bakım kombinasyonları">
+            <span>Saç kesimi + sakal tasarım</span>
+            <span>Saç kesimi + manikür</span>
+            <span>Saç kesimi + el ve ayak bakımı</span>
+            <span>Private tam bakım günü</span>
+          </div>
+          <div class="service-grid">
+            <article class="service-card">
+              <span>01</span>
+              <h3>İmza kesim</h3>
+              <p>Yüz formu, saç yönü ve önceki notlara göre standartlaşan kişisel kesim rutini.</p>
+              <small>45 dk · Usta gerekir · <b data-price-target="haircut">₺900</b></small>
+            </article>
+            <article class="service-card">
+              <span>02</span>
+              <h3>Sakal tasarım</h3>
+              <p>Kontür, yoğunluk ve cilt hassasiyetine göre sakal planı ve bakım takibi.</p>
+              <small>25 dk · Usta gerekir · <b data-price-target="beard">₺450</b></small>
+            </article>
+            <article class="service-card">
+              <span>03</span>
+              <h3>Manikür</h3>
+              <p>Temiz, abartısız ve profesyonel el bakımı; yoğun iş temposuna uygun kısa seans.</p>
+              <small>30 dk · Bakım uzmanı gerekir · <b data-price-target="manicure">₺650</b></small>
+            </article>
+            <article class="service-card">
+              <span>04</span>
+              <h3>Pedikür</h3>
+              <p>Hijyen, konfor ve düzenli bakım odağında üyeye özel ayak bakım rutini.</p>
+              <small>40 dk · Bakım uzmanı gerekir · <b data-price-target="pedicure">₺850</b></small>
+            </article>
+          </div>
+          <div class="bundle-grid" aria-label="Örnek bakım paketleri">
+            <article>
+              <span>Atelier Kombin</span>
+              <strong data-price-target="atelier">₺1.850</strong>
+              <small>Saç kesimi + sakal + manikür</small>
+            </article>
+            <article>
+              <span>El & Ayak Bakımı</span>
+              <strong data-price-target="handsFeet">₺1.350</strong>
+              <small>Manikür + pedikür</small>
+            </article>
+            <article>
+              <span>Private Tam Gün</span>
+              <strong data-price-target="privateDay">₺3.200</strong>
+              <small>Saç + sakal + manikür + pedikür</small>
+            </article>
+          </div>
+        </section>
+
+        <section class="team" id="team" aria-label="Berberim Club uzmanları">
+          <div class="section-heading">
+            <p class="eyebrow">Usta ve uzman eşleşmesi</p>
+            <h2>Her üye, ihtiyacına göre doğru usta veya bakım uzmanıyla eşleşir.</h2>
+          </div>
+          <div class="team-grid">
+            <article class="team-card">
+              <div class="team-avatar">YK</div>
+              <span class="panel-kicker">Baş usta</span>
+              <h3>Yasin Kılıç</h3>
+              <p>Klasik kesim, doğal geçiş ve sakal formu. Sessiz, hızlı, detaycı seanslar.</p>
+              <div class="tag-list"><span>Saç</span><span>Sakal</span><span>Atelier</span></div>
+            </article>
+            <article class="team-card">
+              <div class="team-avatar">EA</div>
+              <span class="panel-kicker">Stil uzmanı</span>
+              <h3>Emir Arman</h3>
+              <p>Modern kesim, özel gün hazırlığı ve yüz formuna göre stil danışmanlığı.</p>
+              <div class="tag-list"><span>Kesim</span><span>Stil</span><span>Private</span></div>
+            </article>
+            <article class="team-card">
+              <div class="team-avatar">DN</div>
+              <span class="panel-kicker">Bakım uzmanı</span>
+              <h3>Deniz Nur</h3>
+              <p>Manikür, pedikür ve hijyen odaklı bakım rutini. Kısa, temiz, profesyonel bitiş.</p>
+              <div class="tag-list"><span>Manikür</span><span>Pedikür</span><span>Bakım</span></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="experience" id="experience" aria-label="Üyelik deneyimi">
+          <div class="section-heading">
+            <p class="eyebrow">İlk ürün kurgusu</p>
+            <h2>Deneyim; başvuru, üyelik ve işletme kontrolü arasında net bir denge kuruyor.</h2>
+          </div>
+          <div class="role-grid">
+            <article>
+              <span class="role-icon">A</span>
+              <h3>Aday</h3>
+              <p>Başvuru yapar, davet kodu girer, uygunluk durumunu takip eder.</p>
+            </article>
+            <article>
+              <span class="role-icon">Ü</span>
+              <h3>Üye</h3>
+              <p>Saç, sakal, manikür ve pedikür notlarını; yalnızca kendisine açılan seansları görür.</p>
+            </article>
+            <article>
+              <span class="role-icon">İ</span>
+              <h3>İşletme</h3>
+              <p>Üyeyi onaylar, seans açar, kapasiteyi ve sadakat notlarını yönetir.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="studio" id="studio" aria-label="Stüdyo vitrini">
+          <div class="studio-copy">
+            <p class="eyebrow">Berber.cagriza.com için ton</p>
+            <h2>Sıcak, seçici, sakin. Tek seferlik işlem değil, düzenli bakım ilişkisi.</h2>
+            <p>
+              Berberim Club; saçtan sakala, el ve ayak bakımına kadar her hizmeti aynı üyelik hafızasında toplar.
+              Amaç daha fazla seans satmak değil, üyeye yakışan bakım ritmini korumaktır.
+            </p>
+          </div>
+          <div class="studio-metrics" aria-label="Planlanan işletme metrikleri">
+            <div><strong>60</strong><span>Aylık ideal üye kapasitesi</span></div>
+            <div><strong>4</strong><span>Temel bakım kategorisi</span></div>
+            <div><strong>3</strong><span>Üyelik seviyesi</span></div>
+          </div>
+        </section>
+
+        <section class="ops" id="ops" aria-label="İşletme kontrol ekranı">
+          <div class="section-heading">
+            <p class="eyebrow">İşletme paneli</p>
+            <h2>Usta, günü tek bakışta görür: işlem, hasılat, ekip ve gelen üye trafiği.</h2>
+          </div>
+          <div class="daily-dashboard" aria-label="Günlük işletme özeti">
+            <article>
+              <span>Bugünkü işlem</span>
+              <strong id="metricTransactions">18</strong>
+              <small id="metricTransactionDetail">12 saç/sakal · 6 bakım</small>
+            </article>
+            <article>
+              <span>Günlük hasılat</span>
+              <strong id="metricRevenue">₺24.850</strong>
+              <small id="metricCareRevenue">₺7.400 bakım setlerinden</small>
+            </article>
+            <article>
+              <span>Çalışan ekip</span>
+              <strong id="metricStaff">4</strong>
+              <small id="metricStaffDetail">2 usta · 1 bakım uzmanı · 1 destek</small>
+            </article>
+            <article>
+              <span>Dükkâna gelen</span>
+              <strong id="metricVisitors">23</strong>
+              <small id="metricVisitorDetail">18 üye · 5 aday/ziyaretçi</small>
+            </article>
+          </div>
+          <article class="panel owner-controls" aria-label="İşletme sahibi düzenleme paneli">
+            <div class="panel-heading">
+              <span class="panel-kicker">İşletme sahibi</span>
+              <h3>Günlük rakamları düzenle</h3>
+            </div>
+            <form class="owner-form" id="ownerMetricsForm">
+              <label>
+                Bugünkü işlem
+                <input name="transactions" type="number" min="0" value="18" />
+              </label>
+              <label>
+                Günlük hasılat
+                <input name="revenue" type="number" min="0" value="24850" />
+              </label>
+              <label>
+                Bakım seti hasılatı
+                <input name="careRevenue" type="number" min="0" value="7400" />
+              </label>
+              <label>
+                Çalışan ekip
+                <input name="staff" type="number" min="0" value="4" />
+              </label>
+              <label>
+                Dükkâna gelen
+                <input name="visitors" type="number" min="0" value="23" />
+              </label>
+              <label>
+                Üye sayısı
+                <input name="memberVisitors" type="number" min="0" value="18" />
+              </label>
+              <button class="button button-secondary" type="submit">Günlük özeti güncelle</button>
+            </form>
+          </article>
+          <article class="panel owner-controls" aria-label="İşletme sahibi fiyat ayarları">
+            <div class="panel-heading">
+              <span class="panel-kicker">Fiyat ayarları</span>
+              <h3>Hizmet ve paket fiyatlarını düzenle</h3>
+            </div>
+            <form class="owner-form price-form" id="ownerPricingForm">
+              <label>
+                İmza kesim
+                <input name="haircut" type="number" min="0" value="900" />
+              </label>
+              <label>
+                Sakal
+                <input name="beard" type="number" min="0" value="450" />
+              </label>
+              <label>
+                Manikür
+                <input name="manicure" type="number" min="0" value="650" />
+              </label>
+              <label>
+                Pedikür
+                <input name="pedicure" type="number" min="0" value="850" />
+              </label>
+              <label>
+                Atelier
+                <input name="atelier" type="number" min="0" value="1850" />
+              </label>
+              <label>
+                El & Ayak
+                <input name="handsFeet" type="number" min="0" value="1350" />
+              </label>
+              <label>
+                Private
+                <input name="privateDay" type="number" min="0" value="3200" />
+              </label>
+              <button class="button button-secondary" type="submit">Fiyatları güncelle</button>
+            </form>
+          </article>
+          <article class="panel owner-controls" aria-label="İşletme sahibi ekip ayarları">
+            <div class="panel-heading">
+              <span class="panel-kicker">Ekip ayarları</span>
+              <h3>Çalışan ve vardiya düzenle</h3>
+            </div>
+            <form class="staff-form" id="ownerStaffForm">
+              <label>
+                Çalışan adı
+                <input name="staffName" placeholder="Örn. Yeni Usta" required />
+              </label>
+              <label>
+                Rol
+                <select name="staffRole">
+                  <option>Usta</option>
+                  <option>Bakım uzmanı</option>
+                  <option>Destek</option>
+                </select>
+              </label>
+              <label>
+                Vardiya
+                <input name="staffShift" placeholder="10:00-19:00" required />
+              </label>
+              <label>
+                Durum
+                <select name="staffStatus">
+                  <option>Aktif</option>
+                  <option>Molada</option>
+                  <option>İzinli</option>
+                </select>
+              </label>
+              <button class="button button-secondary" type="submit">Çalışanı ekle</button>
+            </form>
+            <div class="editable-staff-list" id="editableStaffList" aria-label="Düzenlenebilir çalışan listesi"></div>
+          </article>
+          <div class="ops-layout">
+            <article class="panel">
+              <div class="panel-heading">
+                <span class="panel-kicker">Kuyruk</span>
+                <h3>Bekleyen başvurular</h3>
+              </div>
+              <div class="invite-row" aria-label="Davet kodları">
+                <div>
+                  <span>Davet kodu</span>
+                  <strong>BC-ATELIER-09</strong>
+                </div>
+                <button class="icon-button" type="button" id="copyInviteButton" title="Davet kodunu kopyala">⧉</button>
+              </div>
+              <div class="queue" id="applicationQueue"></div>
+            </article>
+            <article class="panel panel-dark">
+              <div class="panel-heading">
+                <span class="panel-kicker">Seans açma</span>
+                <h3>Kontrollü erişim</h3>
+              </div>
+              <div class="access-rules">
+                <label><input type="checkbox" checked /> Sadece onaylı üyeler görebilir</label>
+                <label><input type="checkbox" checked /> Yeni adaylar seans seçemez</label>
+                <label><input type="checkbox" checked /> Manikür ve pedikür yalnızca bakım uzmanı uygunluğunda açılır</label>
+                <label><input type="checkbox" /> Davet kodsuz başvurular otomatik beklesin</label>
+              </div>
+              <div class="session-plan" aria-label="Örnek seans planı">
+                <div><span>Set</span><strong>Saç + manikür + pedikür</strong></div>
+                <div><span>Süre</span><strong>115 dk</strong></div>
+                <div><span>Uzman</span><strong>1 usta + 1 bakım uzmanı</strong></div>
+              </div>
+              <div class="capacity-meter" aria-label="Gün kapasitesi">
+                <div>
+                  <span>Gün kapasitesi</span>
+                  <strong>5 / 8 seans</strong>
+                </div>
+                <div class="meter-track"><span style="width: 62%"></span></div>
+                <small>Private üyeler için 2 kapalı saat korunuyor.</small>
+              </div>
+              <button class="button button-secondary" type="button" id="openSlotButton">Cuma 19:30 seansını aç</button>
+              <p class="microcopy" id="slotFeedback">Seanslar örnek veriyle gösteriliyor.</p>
+            </article>
+          </div>
+          <div class="ops-insights" aria-label="Günlük hizmet ve ekip kırılımı">
+            <article class="panel">
+              <div class="panel-heading">
+                <span class="panel-kicker">Hizmet kırılımı</span>
+                <h3>Bugünün setleri</h3>
+              </div>
+              <div class="service-breakdown">
+                <div><span>Saç kesimi</span><strong>9</strong></div>
+                <div><span>Sakal tasarım</span><strong>7</strong></div>
+                <div><span>Manikür</span><strong>4</strong></div>
+                <div><span>Pedikür</span><strong>2</strong></div>
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-heading">
+                <span class="panel-kicker">Ekip durumu</span>
+                <h3>Çalışanlar</h3>
+              </div>
+              <div class="staff-list">
+                <div><strong>Yasin Kılıç</strong><span>Usta · 10:00-19:00 · Aktif</span></div>
+                <div><strong>Emir Arman</strong><span>Usta · 12:00-21:00 · Aktif</span></div>
+                <div><strong>Deniz Nur</strong><span>Bakım uzmanı · 11:00-20:00 · Aktif</span></div>
+                <div><strong>Destek</strong><span>Destek · 10:00-18:00 · Aktif</span></div>
+              </div>
+            </article>
+          </div>
+          <div class="ops-flow" aria-label="Kasa ve gün akışı">
+            <article class="panel panel-dark">
+              <div class="panel-heading">
+                <span class="panel-kicker">Kasa</span>
+                <h3>Ödeme kırılımı</h3>
+              </div>
+              <div class="cash-grid">
+                <div><span>Kart</span><strong>₺16.900</strong></div>
+                <div><span>Nakit</span><strong>₺5.250</strong></div>
+                <div><span>Online</span><strong>₺2.700</strong></div>
+                <div><span>Ortalama sepet</span><strong>₺1.380</strong></div>
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-heading">
+                <span class="panel-kicker">Gün akışı</span>
+                <h3>Sıradaki üyeler</h3>
+              </div>
+              <div class="visit-flow">
+                <div><span>19:30</span><strong>Çağrı Z.</strong><small>Saç + manikür + pedikür</small></div>
+                <div><span>20:15</span><strong>Mert A.</strong><small>Saç + sakal</small></div>
+                <div><span>21:00</span><strong>Private blok</strong><small>Korunan saat</small></div>
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-heading">
+                <span class="panel-kicker">Takip</span>
+                <h3>İptal ve gelmedi</h3>
+              </div>
+              <div class="exception-list">
+                <div><strong>1</strong><span>Son dakika iptal</span></div>
+                <div><strong>0</strong><span>Gelmedi</span></div>
+                <div><strong>2</strong><span>Yeniden planlanacak</span></div>
+              </div>
+            </article>
+          </div>
+          <div class="live-floor" aria-label="Anlık dükkan durumu">
+            <article class="panel">
+              <div class="panel-heading">
+                <span class="panel-kicker">Anlık durum</span>
+                <h3>Dükkân akışı</h3>
+              </div>
+              <div class="floor-states">
+                <div><strong>3</strong><span>İçeride</span></div>
+                <div><strong>2</strong><span>Bekliyor</span></div>
+                <div><strong>18</strong><span>Tamamlandı</span></div>
+                <div><strong>1</strong><span>Tahsilat açık</span></div>
+              </div>
+            </article>
+            <article class="panel panel-dark">
+              <div class="panel-heading">
+                <span class="panel-kicker">Üye hızlı kartları</span>
+                <h3>Bugünkü kayıtlar</h3>
+              </div>
+              <div class="member-quick-list">
+                <div>
+                  <strong>Çağrı Z.</strong>
+                  <span>Atelier · içeride · saç + manikür + pedikür</span>
+                  <small>Son not: el bakımında mat bitiş</small>
+                </div>
+                <div>
+                  <strong>Mert A.</strong>
+                  <span>Essential · bekliyor · saç + sakal</span>
+                  <small>Son not: sakal kontürü keskin</small>
+                </div>
+                <div>
+                  <strong>Emre K.</strong>
+                  <span>Private · tamamlandı · tam bakım</span>
+                  <small>Tahsilat: kart ile kapandı</small>
+                </div>
+              </div>
+            </article>
+          </div>
+          <div class="stock-panel" aria-label="Stok ve sarf malzeme takibi">
+            <article class="panel">
+              <div class="panel-heading">
+                <span class="panel-kicker">Stok</span>
+                <h3>Sarf malzeme</h3>
+              </div>
+              <div class="stock-list">
+                <div><span>Tek kullanımlık havlu</span><strong>42 adet</strong><small>Güvenli</small></div>
+                <div><span>Manikür seti</span><strong>9 paket</strong><small>Azalıyor</small></div>
+                <div><span>Pedikür hijyen kiti</span><strong>5 paket</strong><small>Kritik</small></div>
+                <div><span>Sakal bakım yağı</span><strong>18 şişe</strong><small>Güvenli</small></div>
+              </div>
+            </article>
+            <article class="panel panel-dark">
+              <div class="panel-heading">
+                <span class="panel-kicker">Tüketim</span>
+                <h3>Bugünkü kullanım</h3>
+              </div>
+              <div class="usage-grid">
+                <div><strong>18</strong><span>Havlu</span></div>
+                <div><strong>4</strong><span>Manikür kiti</span></div>
+                <div><strong>2</strong><span>Pedikür kiti</span></div>
+                <div><strong>7</strong><span>Sakal ürünü</span></div>
+              </div>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

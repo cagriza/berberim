@@ -1,0 +1,10 @@
+{
+  "name": "Berberim Club",
+  "short_name": "Berberim",
+  "description": "Onaylı üyelikle çalışan modern saç, sakal, manikür ve pedikür bakım kulübü web uygulaması.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#171311",
+  "theme_color": "#171311",
+  "lang": "tr"
+}
