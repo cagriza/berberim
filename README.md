@@ -55,6 +55,10 @@ http://localhost:3000/api/health
 - `GET /api/health`
 - `GET /api/roles`
 - `GET /api/services`
+- `GET /api/special-prices`
+- `POST /api/special-prices`
+- `DELETE /api/special-prices/:id`
+- `POST /api/payments/checkout`
 - `GET /api/stock`
 - `POST /api/stock`
 - `POST /api/stock/:id/movements`

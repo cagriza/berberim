@@ -211,6 +211,31 @@ async function refreshStockFromApi({ silent = false } = {}) {
   }
 }
 
+function normalizeSpecialPrice(price) {
+  return {
+    id: price.id,
+    customerName: price.customerName,
+    serviceName: price.serviceName,
+    amount: Number(price.amount || 0),
+    note: price.note || "",
+  };
+}
+
+async function refreshSpecialPricesFromApi({ silent = false } = {}) {
+  try {
+    const prices = (await apiRequest("/api/special-prices")).map(normalizeSpecialPrice);
+    saveJson(storageKeys.specialPrices, prices);
+    renderSpecialPrices(prices);
+    if (!silent) showToast("Özel fiyatlar veritabanından güncellendi.");
+    return true;
+  } catch {
+    const fallbackPrices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
+    renderSpecialPrices(fallbackPrices);
+    if (!silent) showToast("API kapalı olduğu için demo özel fiyat hafızası kullanılıyor.");
+    return false;
+  }
+}
+
 function applyDemoRole(role, shouldNotify = true) {
   document.body.dataset.activeDemoRole = role;
 
@@ -323,7 +348,7 @@ function renderSpecialPrices(prices) {
         <strong>${escapeHtml(price.customerName)}</strong>
         <span>${escapeHtml(price.serviceName)} · ${formatCurrency(Number(price.amount))} · ${escapeHtml(price.note || "Not yok")}</span>
       </div>
-      <button class="icon-button" type="button" data-remove-special-price="${index}" title="Özel fiyatı kaldır">×</button>
+      <button class="icon-button" type="button" data-remove-special-price="${index}" data-special-price-id="${price.id || ""}" title="Özel fiyatı kaldır">×</button>
     `;
     editablePriceList.append(item);
 
@@ -558,16 +583,31 @@ ownerPricingForm.addEventListener("submit", (event) => {
   showToast("Hizmet ve paket fiyatları güncellendi.");
 });
 
-specialPriceForm.addEventListener("submit", (event) => {
+specialPriceForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = new FormData(specialPriceForm);
-  const prices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
-  prices.unshift({
+  const price = {
     customerName: String(data.get("customerName") || "").trim(),
     serviceName: String(data.get("serviceName") || "").trim(),
     amount: numberFromForm(data, "specialAmount"),
     note: String(data.get("specialNote") || "").trim(),
-  });
+  };
+
+  try {
+    await apiRequest("/api/special-prices", {
+      method: "POST",
+      body: JSON.stringify(price),
+    });
+    await refreshSpecialPricesFromApi({ silent: true });
+    specialPriceForm.reset();
+    showToast("Müşteriye özel fiyat veritabanına kaydedildi.");
+    return;
+  } catch {
+    showToast("API kapalı. Özel fiyat demo hafızasına kaydediliyor.");
+  }
+
+  const prices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
+  prices.unshift(price);
 
   saveJson(storageKeys.specialPrices, prices);
   renderSpecialPrices(prices);
@@ -596,15 +636,36 @@ checkoutForm.addEventListener("input", renderSplitPreview);
 checkoutForm.elements.namedItem("checkoutCustomer").addEventListener("change", applySpecialPriceAmount);
 checkoutForm.elements.namedItem("checkoutService").addEventListener("change", applySpecialPriceAmount);
 
-checkoutForm.addEventListener("submit", (event) => {
+checkoutForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = new FormData(checkoutForm);
   const customerName = String(data.get("checkoutCustomer") || "").trim();
   const serviceName = String(data.get("checkoutService") || "").trim();
   const paymentType = String(data.get("paymentType") || "Ödeme");
+  const masterType = String(data.get("master") || "employee");
   const amount = numberFromForm(data, "amount");
   const specialPrice = findSpecialPrice(customerName, serviceName);
   renderSplitPreview();
+
+  try {
+    const result = await apiRequest("/api/payments/checkout", {
+      method: "POST",
+      body: JSON.stringify({
+        customerName,
+        serviceName,
+        paymentType,
+        masterType,
+        amount,
+      }),
+    });
+    showToast(
+      `${formatCurrency(result.amount)} ${paymentType.toLocaleLowerCase("tr-TR")} ile kasaya geçti. Usta payı ${formatCurrency(result.staffShare)}.`
+    );
+    return;
+  } catch {
+    showToast("API kapalı. Ödeme demo akışında gösteriliyor.");
+  }
+
   const priceNote = specialPrice ? " Özel fiyat kaydıyla eşleşti." : "";
   showToast(`${formatCurrency(amount)} ${paymentType.toLocaleLowerCase("tr-TR")} ile kasaya geçti.${priceNote}`);
 });
@@ -621,12 +682,25 @@ editableStaffList.addEventListener("click", (event) => {
   showToast("Çalışan listeden kaldırıldı.");
 });
 
-editablePriceList.addEventListener("click", (event) => {
+editablePriceList.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-remove-special-price]");
   if (!button) return;
 
   const index = Number(button.dataset.removeSpecialPrice);
+  const specialPriceId = Number(button.dataset.specialPriceId || 0);
   const prices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
+
+  if (specialPriceId) {
+    try {
+      await apiRequest(`/api/special-prices/${specialPriceId}`, { method: "DELETE" });
+      await refreshSpecialPricesFromApi({ silent: true });
+      showToast("Özel fiyat veritabanında pasife alındı.");
+      return;
+    } catch {
+      showToast("API kapalı. Özel fiyat demo hafızasından kaldırılıyor.");
+    }
+  }
+
   prices.splice(index, 1);
   saveJson(storageKeys.specialPrices, prices);
   renderSpecialPrices(prices);
@@ -750,6 +824,7 @@ renderEditableStaff(savedStaff);
 
 const savedSpecialPrices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
 renderSpecialPrices(savedSpecialPrices);
+refreshSpecialPricesFromApi({ silent: true });
 
 const savedStock = readJson(storageKeys.stock) || [...seedStock];
 renderStock(savedStock);

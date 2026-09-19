@@ -11,6 +11,70 @@ function updateStockStatus(quantity, minimumQuantity) {
   return "safe";
 }
 
+function slugPhoneFromName(name) {
+  return `demo-${name.toLocaleLowerCase("tr-TR").replace(/[^a-z0-9ığüşöçİĞÜŞÖÇ]+/g, "-")}`;
+}
+
+function ensureCustomer(db, fullName) {
+  const name = String(fullName || "").trim();
+  const phone = slugPhoneFromName(name || "musteri");
+  const existing = get(db, "select * from customer_profiles where full_name = ? or phone = ? limit 1", [name, phone]);
+  if (existing) return existing;
+
+  const result = run(db, "insert into customer_profiles (full_name, phone, membership_level, membership_status) values (?, ?, ?, ?)", [
+    name,
+    phone,
+    "demo",
+    "active",
+  ]);
+  return get(db, "select * from customer_profiles where id = ?", [result.lastInsertRowid]);
+}
+
+function ensureService(db, serviceName, amount = 0) {
+  const name = String(serviceName || "").trim();
+  const existing = get(db, "select * from services where name = ? limit 1", [name]);
+  if (existing) return existing;
+
+  const category = get(db, "select id from service_categories where name = 'Kombin' limit 1");
+  const result = run(
+    db,
+    `insert into services (category_id, name, default_price, duration_minutes, requires_master, requires_care_specialist)
+     values (?, ?, ?, ?, ?, ?)`,
+    [category?.id || null, name, amount, 60, 1, 0]
+  );
+  return get(db, "select * from services where id = ?", [result.lastInsertRowid]);
+}
+
+function ensureDemoStaff(db, masterType) {
+  const roleCode = masterType === "care" ? "care_specialist" : masterType === "owner" ? "owner" : "master";
+  const fullName = masterType === "care" ? "Elif Zeren" : masterType === "owner" ? "İsmail Gül" : "Faruk Usta";
+  const role = get(db, "select id from roles where code = ? limit 1", [roleCode]);
+  let user = get(db, "select * from users where full_name = ? limit 1", [fullName]);
+
+  if (!user) {
+    const userResult = run(db, "insert into users (role_id, full_name, status) values (?, ?, ?)", [
+      role?.id || 1,
+      fullName,
+      "active",
+    ]);
+    user = get(db, "select * from users where id = ?", [userResult.lastInsertRowid]);
+  }
+
+  let staff = get(db, "select * from staff_profiles where user_id = ? limit 1", [user.id]);
+  if (!staff) {
+    const staffResult = run(
+      db,
+      `insert into staff_profiles
+        (user_id, staff_type, shift_label, commission_rate, can_close_payment, can_view_private_finance)
+       values (?, ?, ?, ?, ?, ?)`,
+      [user.id, roleCode, "Demo vardiya", masterType === "care" ? 40 : 50, 1, masterType === "owner" ? 1 : 0]
+    );
+    staff = get(db, "select * from staff_profiles where id = ?", [staffResult.lastInsertRowid]);
+  }
+
+  return { user, staff };
+}
+
 export function registerRoutes(app, db) {
   app.get("/api/health", (req, res) => {
     const tableCount = get(db, "select count(*) as count from sqlite_master where type = 'table'");
@@ -39,6 +103,142 @@ export function registerRoutes(app, db) {
         order by services.id`
       )
     );
+  });
+
+  app.get("/api/special-prices", (req, res) => {
+    res.json(
+      all(
+        db,
+        `select
+          customer_special_prices.id,
+          customer_profiles.full_name as customerName,
+          services.name as serviceName,
+          customer_special_prices.special_price as amount,
+          customer_special_prices.note
+        from customer_special_prices
+        join customer_profiles on customer_profiles.id = customer_special_prices.customer_id
+        join services on services.id = customer_special_prices.service_id
+        where customer_special_prices.active = 1
+        order by customer_special_prices.id desc`
+      )
+    );
+  });
+
+  app.post("/api/special-prices", (req, res) => {
+    const customerName = String(req.body.customerName || "").trim();
+    const serviceName = String(req.body.serviceName || "").trim();
+    const amount = parseAmount(req.body.amount);
+    const note = String(req.body.note || "").trim();
+
+    if (!customerName || !serviceName || amount <= 0) {
+      res.status(400).json({ error: "Müşteri, hizmet ve tutar zorunlu." });
+      return;
+    }
+
+    const customer = ensureCustomer(db, customerName);
+    const service = ensureService(db, serviceName, amount);
+    run(
+      db,
+      `insert into customer_special_prices (customer_id, service_id, special_price, note)
+       values (?, ?, ?, ?)
+       on conflict(customer_id, service_id)
+       do update set special_price = excluded.special_price, note = excluded.note, active = 1, updated_at = datetime('now')`,
+      [customer.id, service.id, amount, note]
+    );
+
+    const specialPrice = get(
+      db,
+      `select
+        customer_special_prices.id,
+        customer_profiles.full_name as customerName,
+        services.name as serviceName,
+        customer_special_prices.special_price as amount,
+        customer_special_prices.note
+      from customer_special_prices
+      join customer_profiles on customer_profiles.id = customer_special_prices.customer_id
+      join services on services.id = customer_special_prices.service_id
+      where customer_special_prices.customer_id = ? and customer_special_prices.service_id = ?`,
+      [customer.id, service.id]
+    );
+    res.status(201).json(specialPrice);
+  });
+
+  app.delete("/api/special-prices/:id", (req, res) => {
+    const price = get(db, "select * from customer_special_prices where id = ? and active = 1", [Number(req.params.id)]);
+    if (!price) {
+      res.status(404).json({ error: "Özel fiyat bulunamadı." });
+      return;
+    }
+    run(db, "update customer_special_prices set active = 0, updated_at = datetime('now') where id = ?", [price.id]);
+    res.json({ ok: true, id: price.id });
+  });
+
+  app.post("/api/payments/checkout", (req, res) => {
+    const customerName = String(req.body.customerName || "").trim();
+    const serviceName = String(req.body.serviceName || "").trim();
+    const paymentType = String(req.body.paymentType || "Nakit").trim();
+    const masterType = String(req.body.masterType || "employee");
+    const amount = parseAmount(req.body.amount);
+
+    if (!customerName || !serviceName || amount <= 0) {
+      res.status(400).json({ error: "Müşteri, hizmet ve tahsilat tutarı zorunlu." });
+      return;
+    }
+
+    const customer = ensureCustomer(db, customerName);
+    const service = ensureService(db, serviceName, amount);
+    const staffContext = ensureDemoStaff(db, masterType);
+    const staffShare = masterType === "owner" ? 0 : masterType === "care" ? Math.round(amount * 0.4) : Math.round(amount / 2);
+    const businessShare = amount - staffShare;
+
+    db.exec("begin");
+    try {
+      const sessionResult = run(
+        db,
+        `insert into service_sessions
+          (customer_id, primary_staff_id, status, ended_at, total_amount, note)
+         values (?, ?, ?, datetime('now'), ?, ?)`,
+        [customer.id, staffContext.staff.id, "completed", amount, "Demo ödeme kapatma"]
+      );
+      const sessionId = sessionResult.lastInsertRowid;
+      run(
+        db,
+        `insert into service_session_items (session_id, service_id, quantity, unit_price, line_total)
+         values (?, ?, ?, ?, ?)`,
+        [sessionId, service.id, 1, amount, amount]
+      );
+      const paymentResult = run(
+        db,
+        `insert into payments (session_id, collected_by, payment_type, amount, manual_amount, note)
+         values (?, ?, ?, ?, ?, ?)`,
+        [sessionId, staffContext.user.id, paymentType, amount, 1, "Demo ödeme"]
+      );
+      run(
+        db,
+        `insert into staff_earnings (staff_id, session_id, payment_id, gross_amount, staff_share, business_share)
+         values (?, ?, ?, ?, ?, ?)`,
+        [staffContext.staff.id, sessionId, paymentResult.lastInsertRowid, amount, staffShare, businessShare]
+      );
+      run(
+        db,
+        `insert into cash_movements (payment_id, movement_type, amount, payment_type, note, created_by)
+         values (?, ?, ?, ?, ?, ?)`,
+        [paymentResult.lastInsertRowid, "income", amount, paymentType, "Ödeme kapatma", staffContext.user.id]
+      );
+      db.exec("commit");
+
+      res.status(201).json({
+        sessionId,
+        paymentId: paymentResult.lastInsertRowid,
+        amount,
+        paymentType,
+        staffShare,
+        businessShare,
+      });
+    } catch (error) {
+      db.exec("rollback");
+      throw error;
+    }
   });
 
   app.get("/api/stock", (req, res) => {
