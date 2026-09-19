@@ -13,7 +13,7 @@
     <link rel="preload" href="./assets/private-studio-hero.png" as="image" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body>
+  <body data-active-demo-role="all">
     <div class="app-shell">
       <header class="topbar" aria-label="Ana gezinme">
         <a class="brand" href="#home" aria-label="Berberim Club ana ekran">
@@ -82,7 +82,21 @@
           </article>
         </section>
 
-        <section class="workspace" id="membership" aria-label="Üyelik panosu">
+        <section class="demo-switcher" aria-label="Demo rol seçimi">
+          <div>
+            <span class="panel-kicker">Demo görünümü</span>
+            <strong>Hangi rolün ne gördüğünü seçerek kontrol et.</strong>
+          </div>
+          <div class="role-tabs" role="tablist" aria-label="Rol görünümü seçimi">
+            <button class="selected" type="button" data-demo-role="all" aria-pressed="true">Tüm demo</button>
+            <button type="button" data-demo-role="owner" aria-pressed="false">Patron</button>
+            <button type="button" data-demo-role="admin" aria-pressed="false">Admin</button>
+            <button type="button" data-demo-role="master" aria-pressed="false">Usta</button>
+            <button type="button" data-demo-role="customer" aria-pressed="false">Müşteri</button>
+          </div>
+        </section>
+
+        <section class="workspace" id="membership" aria-label="Üyelik panosu" data-demo-scope="customer owner admin">
           <div class="section-heading">
             <p class="eyebrow">Seçici erişim</p>
             <h2>Kalabalık saat listeleri yerine sakin, kontrollü ve üyeye özel bir akış.</h2>
@@ -206,7 +220,7 @@
           </div>
         </section>
 
-        <section class="levels" id="levels" aria-label="Berberim Club üyelik seviyeleri">
+        <section class="levels" id="levels" aria-label="Berberim Club üyelik seviyeleri" data-demo-scope="customer owner admin">
           <div class="section-heading">
             <p class="eyebrow">Üyelik seviyeleri</p>
             <h2>Seviye, üyeyi sınırlamak için değil; doğru seti doğru öncelikle açmak için kullanılır.</h2>
@@ -254,7 +268,7 @@
           </div>
         </section>
 
-        <section class="services" id="services" aria-label="Berberim Club hizmetleri">
+        <section class="services" id="services" aria-label="Berberim Club hizmetleri" data-demo-scope="customer owner admin master">
           <div class="section-heading">
             <p class="eyebrow">Bakım menüsü</p>
             <h2>Üye tek bir hizmete bağlı kalmaz; bakım setlerini birlikte seçebilir.</h2>
@@ -310,7 +324,7 @@
           </div>
         </section>
 
-        <section class="team" id="team" aria-label="Berberim Club uzmanları">
+        <section class="team" id="team" aria-label="Berberim Club uzmanları" data-demo-scope="owner admin master">
           <div class="section-heading">
             <p class="eyebrow">Usta ve uzman eşleşmesi</p>
             <h2>Her üye, ihtiyacına göre doğru usta veya bakım uzmanıyla eşleşir.</h2>
@@ -377,7 +391,7 @@
             <h2>Patron her şeyi görür; çalışan yalnızca kendi işi, kendi tahsilatı ve kendi hesabıyla çalışır.</h2>
           </div>
           <div class="role-access-grid">
-            <article class="role-access-card patron-card">
+            <article class="role-access-card patron-card" data-demo-scope="owner">
               <span class="panel-kicker">Patron + usta</span>
               <h3>İsmail Gül</h3>
               <p>İşletmenin sahibi olduğu için tüm sistem, kasa, personel maaşları, alacak-borç ve mahrem üye notlarına erişir.</p>
@@ -388,7 +402,7 @@
                 <span>Yetki ve fiyat ayarları</span>
               </div>
             </article>
-            <article class="role-access-card">
+            <article class="role-access-card" data-demo-scope="admin">
               <span class="panel-kicker">Admin paneli</span>
               <h3>Sistem yönetimi</h3>
               <p>Kullanıcı açma, rol tanımlama, fiyat listesi, hizmet kataloğu, güvenlik ve veri kayıtlarını yönetir.</p>
@@ -399,7 +413,7 @@
                 <span>Denetim kayıtları</span>
               </div>
             </article>
-            <article class="role-access-card">
+            <article class="role-access-card" data-demo-scope="master">
               <span class="panel-kicker">Usta ekranı</span>
               <h3>Çalışan akışı</h3>
               <p>Usta kendi seanslarını, hizmetlerini, ödeme kapatma ekranını ve yalnızca kendi alacak-borç özetini görür.</p>
@@ -410,7 +424,7 @@
                 <span>Kendi bakiye durumum</span>
               </div>
             </article>
-            <article class="role-access-card">
+            <article class="role-access-card" data-demo-scope="customer">
               <span class="panel-kicker">Müşteri ekranı</span>
               <h3>Üye deneyimi</h3>
               <p>Üye bakım geçmişini, kendisine açılan seansları, seçili bakım setlerini ve kendi üyelik ayrıcalıklarını görür.</p>
@@ -440,12 +454,12 @@
           </div>
         </section>
 
-        <section class="ops" id="ops" aria-label="İşletme kontrol ekranı">
+        <section class="ops" id="ops" aria-label="İşletme kontrol ekranı" data-demo-scope="owner admin master">
           <div class="section-heading">
             <p class="eyebrow">İşletme paneli</p>
             <h2>Usta, günü tek bakışta görür: işlem, hasılat, ekip ve gelen üye trafiği.</h2>
           </div>
-          <div class="daily-dashboard" aria-label="Günlük işletme özeti">
+          <div class="daily-dashboard" aria-label="Günlük işletme özeti" data-demo-scope="owner admin">
             <article>
               <span>Bugünkü işlem</span>
               <strong id="metricTransactions">18</strong>
@@ -467,7 +481,7 @@
               <small id="metricVisitorDetail">18 üye · 5 aday/ziyaretçi</small>
             </article>
           </div>
-          <article class="panel owner-controls" aria-label="İşletme sahibi düzenleme paneli">
+          <article class="panel owner-controls" aria-label="İşletme sahibi düzenleme paneli" data-demo-scope="owner">
             <div class="panel-heading">
               <span class="panel-kicker">İşletme sahibi</span>
               <h3>Günlük rakamları düzenle</h3>
@@ -500,7 +514,7 @@
               <button class="button button-secondary" type="submit">Günlük özeti güncelle</button>
             </form>
           </article>
-          <article class="panel owner-controls" aria-label="İşletme sahibi fiyat ayarları">
+          <article class="panel owner-controls" aria-label="İşletme sahibi fiyat ayarları" data-demo-scope="owner admin">
             <div class="panel-heading">
               <span class="panel-kicker">Fiyat ayarları</span>
               <h3>Hizmet ve paket fiyatlarını düzenle</h3>
@@ -537,7 +551,7 @@
               <button class="button button-secondary" type="submit">Fiyatları güncelle</button>
             </form>
           </article>
-          <article class="panel owner-controls" aria-label="İşletme sahibi ekip ayarları">
+          <article class="panel owner-controls" aria-label="İşletme sahibi ekip ayarları" data-demo-scope="owner admin">
             <div class="panel-heading">
               <span class="panel-kicker">Ekip ayarları</span>
               <h3>Çalışan ve vardiya düzenle</h3>
@@ -572,7 +586,7 @@
             <div class="editable-staff-list" id="editableStaffList" aria-label="Düzenlenebilir çalışan listesi"></div>
           </article>
           <div class="finance-layout" aria-label="Patron ve çalışan finans ekranları">
-            <article class="panel panel-dark owner-ledger">
+            <article class="panel panel-dark owner-ledger" data-demo-scope="owner">
               <div class="panel-heading">
                 <span class="panel-kicker">Patron ekranı</span>
                 <h3>Personel maaş, alacak ve borç takibi</h3>
@@ -624,7 +638,7 @@
                 </div>
               </div>
             </article>
-            <article class="panel checkout-panel">
+            <article class="panel checkout-panel" data-demo-scope="master owner">
               <div class="panel-heading">
                 <span class="panel-kicker">Usta ekranı</span>
                 <h3>İşlem bitince ödeme kapat</h3>
@@ -662,7 +676,7 @@
             </article>
           </div>
           <div class="role-screen-layout" aria-label="Örnek rol ekranları">
-            <article class="panel">
+            <article class="panel" data-demo-scope="admin">
               <div class="panel-heading">
                 <span class="panel-kicker">Admin paneli</span>
                 <h3>Yetki ve sistem ayarları</h3>
@@ -674,7 +688,7 @@
                 <div><strong>Üye</strong><span>Müşteri · yalnızca kendi üyelik ve bakım bilgisi</span></div>
               </div>
             </article>
-            <article class="panel panel-dark">
+            <article class="panel panel-dark" data-demo-scope="owner">
               <div class="panel-heading">
                 <span class="panel-kicker">Patron özeti</span>
                 <h3>Kasa ve kazanç dağılımı</h3>
@@ -688,7 +702,7 @@
             </article>
           </div>
           <div class="ops-layout">
-            <article class="panel">
+            <article class="panel" data-demo-scope="admin owner">
               <div class="panel-heading">
                 <span class="panel-kicker">Kuyruk</span>
                 <h3>Bekleyen başvurular</h3>
@@ -702,7 +716,7 @@
               </div>
               <div class="queue" id="applicationQueue"></div>
             </article>
-            <article class="panel panel-dark">
+            <article class="panel panel-dark" data-demo-scope="admin owner">
               <div class="panel-heading">
                 <span class="panel-kicker">Seans açma</span>
                 <h3>Kontrollü erişim</h3>
@@ -731,7 +745,7 @@
             </article>
           </div>
           <div class="ops-insights" aria-label="Günlük hizmet ve ekip kırılımı">
-            <article class="panel">
+            <article class="panel" data-demo-scope="owner">
               <div class="panel-heading">
                 <span class="panel-kicker">Hizmet kırılımı</span>
                 <h3>Bugünün setleri</h3>
@@ -743,7 +757,7 @@
                 <div><span>Pedikür</span><strong>2</strong></div>
               </div>
             </article>
-            <article class="panel">
+            <article class="panel" data-demo-scope="owner admin master">
               <div class="panel-heading">
                 <span class="panel-kicker">Ekip durumu</span>
                 <h3>Çalışanlar</h3>
@@ -758,7 +772,7 @@
             </article>
           </div>
           <div class="ops-flow" aria-label="Kasa ve gün akışı">
-            <article class="panel panel-dark">
+            <article class="panel panel-dark" data-demo-scope="owner">
               <div class="panel-heading">
                 <span class="panel-kicker">Kasa</span>
                 <h3>Ödeme kırılımı</h3>
@@ -770,7 +784,7 @@
                 <div><span>Ortalama sepet</span><strong>₺1.380</strong></div>
               </div>
             </article>
-            <article class="panel">
+            <article class="panel" data-demo-scope="master owner">
               <div class="panel-heading">
                 <span class="panel-kicker">Gün akışı</span>
                 <h3>Sıradaki üyeler</h3>
@@ -781,7 +795,7 @@
                 <div><span>21:00</span><strong>Private blok</strong><small>Korunan saat</small></div>
               </div>
             </article>
-            <article class="panel">
+            <article class="panel" data-demo-scope="owner admin">
               <div class="panel-heading">
                 <span class="panel-kicker">Takip</span>
                 <h3>İptal ve gelmedi</h3>
@@ -794,7 +808,7 @@
             </article>
           </div>
           <div class="live-floor" aria-label="Anlık dükkan durumu">
-            <article class="panel">
+            <article class="panel" data-demo-scope="owner admin master">
               <div class="panel-heading">
                 <span class="panel-kicker">Anlık durum</span>
                 <h3>Dükkân akışı</h3>
@@ -806,7 +820,7 @@
                 <div><strong>1</strong><span>Tahsilat açık</span></div>
               </div>
             </article>
-            <article class="panel panel-dark">
+            <article class="panel panel-dark" data-demo-scope="owner master">
               <div class="panel-heading">
                 <span class="panel-kicker">Üye hızlı kartları</span>
                 <h3>Bugünkü kayıtlar</h3>
@@ -831,7 +845,7 @@
             </article>
           </div>
           <div class="stock-panel" aria-label="Stok ve sarf malzeme takibi">
-            <article class="panel">
+            <article class="panel" data-demo-scope="owner admin">
               <div class="panel-heading">
                 <span class="panel-kicker">Stok</span>
                 <h3>Sarf malzeme</h3>
@@ -843,7 +857,7 @@
                 <div><span>Sakal bakım yağı</span><strong>18 şişe</strong><small>Güvenli</small></div>
               </div>
             </article>
-            <article class="panel panel-dark">
+            <article class="panel panel-dark" data-demo-scope="owner admin">
               <div class="panel-heading">
                 <span class="panel-kicker">Tüketim</span>
                 <h3>Bugünkü kullanım</h3>

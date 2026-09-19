@@ -26,6 +26,8 @@ const toast = document.querySelector("#toast");
 const slotFeedback = document.querySelector("#slotFeedback");
 const openSlotButton = document.querySelector("#openSlotButton");
 const copyInviteButton = document.querySelector("#copyInviteButton");
+const demoRoleButtons = document.querySelectorAll("[data-demo-role]");
+const demoScopedElements = document.querySelectorAll("[data-demo-scope]");
 const ownerMetricsForm = document.querySelector("#ownerMetricsForm");
 const ownerPricingForm = document.querySelector("#ownerPricingForm");
 const ownerStaffForm = document.querySelector("#ownerStaffForm");
@@ -98,6 +100,33 @@ function readJson(key) {
     return JSON.parse(window.localStorage.getItem(key) || "null");
   } catch {
     return null;
+  }
+}
+
+function applyDemoRole(role, shouldNotify = true) {
+  document.body.dataset.activeDemoRole = role;
+
+  demoRoleButtons.forEach((button) => {
+    const isSelected = button.dataset.demoRole === role;
+    button.classList.toggle("selected", isSelected);
+    button.setAttribute("aria-pressed", String(isSelected));
+  });
+
+  demoScopedElements.forEach((element) => {
+    const scope = String(element.dataset.demoScope || "").split(/\s+/);
+    const shouldShow = role === "all" || scope.includes(role);
+    element.dataset.demoHidden = String(!shouldShow);
+  });
+
+  if (shouldNotify) {
+    const labels = {
+      all: "Tüm demo görünümü açıldı.",
+      owner: "Patron ekranı görünümü açıldı.",
+      admin: "Admin paneli görünümü açıldı.",
+      master: "Usta ekranı görünümü açıldı.",
+      customer: "Müşteri ekranı görünümü açıldı.",
+    };
+    showToast(labels[role] || labels.all);
   }
 }
 
@@ -296,6 +325,13 @@ copyInviteButton.addEventListener("click", async () => {
   }
 });
 
+demoRoleButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    applyDemoRole(button.dataset.demoRole || "all");
+    document.querySelector("#roles")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+});
+
 ownerMetricsForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const data = new FormData(ownerMetricsForm);
@@ -380,5 +416,6 @@ if (savedPrices) applyPrices(savedPrices, true);
 const savedStaff = readJson(storageKeys.staff) || [...seedStaff];
 renderEditableStaff(savedStaff);
 
+applyDemoRole("all", false);
 renderSplitPreview();
 renderQueue();
