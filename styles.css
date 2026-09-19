@@ -1089,6 +1089,18 @@ textarea:focus {
   align-items: end;
 }
 
+.special-price-form,
+.stock-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(120px, 0.55fr) minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.stock-movement-form {
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.55fr) minmax(100px, 0.45fr) minmax(0, 1fr) auto;
+}
+
 .owner-form label {
   min-width: 0;
 }
@@ -1097,23 +1109,41 @@ textarea:focus {
   min-height: 44px;
 }
 
+.special-price-form label,
+.stock-form label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  color: var(--muted);
+}
+
+.special-price-form input,
+.stock-form input,
+.stock-form select {
+  min-height: 44px;
+}
+
 .owner-form .button {
   min-height: 44px;
   white-space: nowrap;
 }
 
-.staff-form .button {
+.staff-form .button,
+.special-price-form .button,
+.stock-form .button {
   min-height: 44px;
   white-space: nowrap;
 }
 
-.editable-staff-list {
+.editable-staff-list,
+.editable-price-list {
   display: grid;
   gap: 10px;
   margin-top: 18px;
 }
 
-.editable-staff-item {
+.editable-staff-item,
+.editable-price-item {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 12px;
@@ -1125,11 +1155,14 @@ textarea:focus {
 }
 
 .editable-staff-item span,
-.editable-staff-item strong {
+.editable-staff-item strong,
+.editable-price-item span,
+.editable-price-item strong {
   display: block;
 }
 
-.editable-staff-item span {
+.editable-staff-item span,
+.editable-price-item span {
   color: var(--muted);
   font-size: 0.9rem;
 }
@@ -1430,7 +1463,8 @@ textarea:focus {
 .visit-flow,
 .exception-list,
 .member-quick-list,
-.stock-list {
+.stock-list,
+.movement-list {
   display: grid;
   gap: 12px;
 }
@@ -1441,7 +1475,8 @@ textarea:focus {
 .visit-flow div,
 .exception-list div,
 .member-quick-list div,
-.stock-list div {
+.stock-list div,
+.movement-list div {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 12px;
@@ -1456,7 +1491,8 @@ textarea:focus {
 .visit-flow div:first-child,
 .exception-list div:first-child,
 .member-quick-list div:first-child,
-.stock-list div:first-child {
+.stock-list div:first-child,
+.movement-list div:first-child {
   border-top: 0;
   padding-top: 0;
 }
@@ -1470,7 +1506,8 @@ textarea:focus {
 .member-quick-list span,
 .member-quick-list small,
 .stock-list span,
-.stock-list small {
+.stock-list small,
+.movement-list span {
   color: var(--muted);
 }
 
@@ -1508,12 +1545,26 @@ textarea:focus {
 }
 
 .stock-list div {
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   gap: 4px 12px;
 }
 
 .stock-list small {
-  grid-column: 1 / -1;
+  grid-column: 1 / 3;
+}
+
+.movement-list {
+  margin-top: 18px;
+}
+
+.movement-list div {
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.movement-list strong,
+.movement-list span {
+  display: block;
 }
 
 .usage-grid {
@@ -1643,6 +1694,8 @@ textarea:focus {
   .stock-panel,
   .owner-form,
   .staff-form,
+  .special-price-form,
+  .stock-form,
   .studio {
     grid-template-columns: 1fr;
   }

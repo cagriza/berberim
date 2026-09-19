@@ -30,9 +30,17 @@ const demoRoleButtons = document.querySelectorAll("[data-demo-role]");
 const demoScopedElements = document.querySelectorAll("[data-demo-scope]");
 const ownerMetricsForm = document.querySelector("#ownerMetricsForm");
 const ownerPricingForm = document.querySelector("#ownerPricingForm");
+const specialPriceForm = document.querySelector("#specialPriceForm");
 const ownerStaffForm = document.querySelector("#ownerStaffForm");
 const checkoutForm = document.querySelector("#checkoutForm");
+const stockItemForm = document.querySelector("#stockItemForm");
+const stockMovementForm = document.querySelector("#stockMovementForm");
 const editableStaffList = document.querySelector("#editableStaffList");
+const editablePriceList = document.querySelector("#editablePriceList");
+const editableStockList = document.querySelector("#editableStockList");
+const movementStockSelect = document.querySelector("#movementStockSelect");
+const stockMovementList = document.querySelector("#stockMovementList");
+const specialPriceCustomers = document.querySelector("#specialPriceCustomers");
 const splitPreview = document.querySelector("#splitPreview");
 const checkoutFeedback = document.querySelector("#checkoutFeedback");
 const metricTransactions = document.querySelector("#metricTransactions");
@@ -48,6 +56,9 @@ const storageKeys = {
   metrics: "berberimClub.metrics.v2",
   prices: "berberimClub.prices",
   staff: "berberimClub.staff.v2",
+  specialPrices: "berberimClub.specialPrices.v1",
+  stock: "berberimClub.stock.v1",
+  stockMovements: "berberimClub.stockMovements.v1",
 };
 
 const seedStaff = [
@@ -58,6 +69,24 @@ const seedStaff = [
   { name: "Yardımcı 1", role: "Destek", shift: "10:00-18:00", status: "Aktif" },
   { name: "Yardımcı 2", role: "Destek", shift: "11:00-19:00", status: "Aktif" },
   { name: "Yardımcı 3", role: "Destek", shift: "13:00-21:00", status: "Aktif" },
+];
+
+const seedSpecialPrices = [
+  { customerName: "Mehmet A.", serviceName: "Saç + sakal", amount: 1750, note: "Sadık üye özel fiyatı" },
+  { customerName: "Çağrı Z.", serviceName: "Saç + manikür + pedikür", amount: 2350, note: "Atelier kombin indirimi" },
+];
+
+const seedStock = [
+  { name: "Tek kullanımlık havlu", quantity: 42, unit: "adet", status: "Güvenli" },
+  { name: "Manikür seti", quantity: 9, unit: "paket", status: "Azalıyor" },
+  { name: "Pedikür hijyen kiti", quantity: 5, unit: "paket", status: "Kritik" },
+  { name: "Sakal bakım yağı", quantity: 18, unit: "şişe", status: "Güvenli" },
+];
+
+const seedStockMovements = [
+  { name: "Tek kullanımlık havlu", type: "out", quantity: 18, note: "Bugünkü kullanım" },
+  { name: "Manikür seti", type: "out", quantity: 4, note: "Manikür seansları" },
+  { name: "Pedikür hijyen kiti", type: "in", quantity: 6, note: "Yeni alım" },
 ];
 
 function escapeHtml(value) {
@@ -203,6 +232,63 @@ function renderEditableStaff(staff) {
   summarizeStaff(staff);
 }
 
+function renderSpecialPrices(prices) {
+  editablePriceList.innerHTML = "";
+  specialPriceCustomers.innerHTML = "";
+
+  prices.forEach((price, index) => {
+    const item = document.createElement("div");
+    item.className = "editable-price-item";
+    item.innerHTML = `
+      <div>
+        <strong>${escapeHtml(price.customerName)}</strong>
+        <span>${escapeHtml(price.serviceName)} · ${formatCurrency(Number(price.amount))} · ${escapeHtml(price.note || "Not yok")}</span>
+      </div>
+      <button class="icon-button" type="button" data-remove-special-price="${index}" title="Özel fiyatı kaldır">×</button>
+    `;
+    editablePriceList.append(item);
+
+    const option = document.createElement("option");
+    option.value = price.customerName;
+    specialPriceCustomers.append(option);
+  });
+}
+
+function renderStock(stock) {
+  editableStockList.innerHTML = "";
+  movementStockSelect.innerHTML = "";
+
+  stock.forEach((item, index) => {
+    const stockItem = document.createElement("div");
+    stockItem.innerHTML = `
+      <span>${escapeHtml(item.name)}</span>
+      <strong>${Number(item.quantity)} ${escapeHtml(item.unit)}</strong>
+      <small>${escapeHtml(item.status)}</small>
+      <button class="icon-button" type="button" data-remove-stock="${index}" title="Malzemeyi kaldır">×</button>
+    `;
+    editableStockList.append(stockItem);
+
+    const option = document.createElement("option");
+    option.value = item.name;
+    option.textContent = item.name;
+    movementStockSelect.append(option);
+  });
+}
+
+function renderStockMovements(movements) {
+  stockMovementList.innerHTML = "";
+
+  movements.slice(0, 5).forEach((movement) => {
+    const item = document.createElement("div");
+    const typeText = movement.type === "in" ? "Giriş" : "Çıkış";
+    item.innerHTML = `
+      <strong>${escapeHtml(typeText)} · ${Number(movement.quantity)}</strong>
+      <span>${escapeHtml(movement.name)} · ${escapeHtml(movement.note || "Not yok")}</span>
+    `;
+    stockMovementList.append(item);
+  });
+}
+
 function calculateSplit(masterType, amount) {
   if (masterType === "owner") {
     return {
@@ -244,6 +330,32 @@ function renderSplitPreview() {
     <div><span>İşletme payı</span><strong>${formatCurrency(split.houseShare)}</strong></div>
   `;
   checkoutFeedback.textContent = split.note;
+}
+
+function findSpecialPrice(customerName, serviceName) {
+  const prices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
+  const normalizedCustomer = customerName.trim().toLocaleLowerCase("tr-TR");
+  const normalizedService = serviceName.trim().toLocaleLowerCase("tr-TR");
+
+  return prices.find((price) => {
+    return (
+      price.customerName.toLocaleLowerCase("tr-TR") === normalizedCustomer &&
+      price.serviceName.toLocaleLowerCase("tr-TR") === normalizedService
+    );
+  });
+}
+
+function applySpecialPriceAmount() {
+  const customerInput = checkoutForm.elements.namedItem("checkoutCustomer");
+  const serviceInput = checkoutForm.elements.namedItem("checkoutService");
+  const amountInput = checkoutForm.elements.namedItem("amount");
+  const specialPrice = findSpecialPrice(String(customerInput.value || ""), String(serviceInput.value || ""));
+
+  if (specialPrice && amountInput) {
+    amountInput.value = specialPrice.amount;
+    renderSplitPreview();
+    checkoutFeedback.textContent = `${specialPrice.customerName} için kayıtlı özel fiyat uygulandı.`;
+  }
 }
 
 function renderQueue() {
@@ -367,6 +479,23 @@ ownerPricingForm.addEventListener("submit", (event) => {
   showToast("Hizmet ve paket fiyatları güncellendi.");
 });
 
+specialPriceForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const data = new FormData(specialPriceForm);
+  const prices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
+  prices.unshift({
+    customerName: String(data.get("customerName") || "").trim(),
+    serviceName: String(data.get("serviceName") || "").trim(),
+    amount: numberFromForm(data, "specialAmount"),
+    note: String(data.get("specialNote") || "").trim(),
+  });
+
+  saveJson(storageKeys.specialPrices, prices);
+  renderSpecialPrices(prices);
+  specialPriceForm.reset();
+  showToast("Müşteriye özel fiyat kaydedildi.");
+});
+
 ownerStaffForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const data = new FormData(ownerStaffForm);
@@ -385,14 +514,20 @@ ownerStaffForm.addEventListener("submit", (event) => {
 });
 
 checkoutForm.addEventListener("input", renderSplitPreview);
+checkoutForm.elements.namedItem("checkoutCustomer").addEventListener("change", applySpecialPriceAmount);
+checkoutForm.elements.namedItem("checkoutService").addEventListener("change", applySpecialPriceAmount);
 
 checkoutForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const data = new FormData(checkoutForm);
+  const customerName = String(data.get("checkoutCustomer") || "").trim();
+  const serviceName = String(data.get("checkoutService") || "").trim();
   const paymentType = String(data.get("paymentType") || "Ödeme");
   const amount = numberFromForm(data, "amount");
+  const specialPrice = findSpecialPrice(customerName, serviceName);
   renderSplitPreview();
-  showToast(`${formatCurrency(amount)} ${paymentType.toLocaleLowerCase("tr-TR")} ile kasaya geçti.`);
+  const priceNote = specialPrice ? " Özel fiyat kaydıyla eşleşti." : "";
+  showToast(`${formatCurrency(amount)} ${paymentType.toLocaleLowerCase("tr-TR")} ile kasaya geçti.${priceNote}`);
 });
 
 editableStaffList.addEventListener("click", (event) => {
@@ -407,6 +542,79 @@ editableStaffList.addEventListener("click", (event) => {
   showToast("Çalışan listeden kaldırıldı.");
 });
 
+editablePriceList.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-remove-special-price]");
+  if (!button) return;
+
+  const index = Number(button.dataset.removeSpecialPrice);
+  const prices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
+  prices.splice(index, 1);
+  saveJson(storageKeys.specialPrices, prices);
+  renderSpecialPrices(prices);
+  showToast("Özel fiyat kaldırıldı.");
+});
+
+stockItemForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const data = new FormData(stockItemForm);
+  const stock = readJson(storageKeys.stock) || [...seedStock];
+  stock.unshift({
+    name: String(data.get("stockName") || "").trim(),
+    quantity: numberFromForm(data, "stockQuantity"),
+    unit: String(data.get("stockUnit") || "adet").trim(),
+    status: String(data.get("stockStatus") || "Güvenli"),
+  });
+
+  saveJson(storageKeys.stock, stock);
+  renderStock(stock);
+  stockItemForm.reset();
+  showToast("Malzeme stok listesine eklendi.");
+});
+
+stockMovementForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const data = new FormData(stockMovementForm);
+  const stock = readJson(storageKeys.stock) || [...seedStock];
+  const movements = readJson(storageKeys.stockMovements) || [...seedStockMovements];
+  const name = String(data.get("movementStock") || "");
+  const type = String(data.get("movementType") || "out");
+  const quantity = numberFromForm(data, "movementQuantity");
+  const item = stock.find((stockItem) => stockItem.name === name);
+
+  if (item) {
+    item.quantity = type === "in" ? Number(item.quantity) + quantity : Math.max(Number(item.quantity) - quantity, 0);
+    if (item.quantity <= 5) item.status = "Kritik";
+    else if (item.quantity <= 10) item.status = "Azalıyor";
+    else item.status = "Güvenli";
+  }
+
+  movements.unshift({
+    name,
+    type,
+    quantity,
+    note: String(data.get("movementNote") || "").trim(),
+  });
+
+  saveJson(storageKeys.stock, stock);
+  saveJson(storageKeys.stockMovements, movements);
+  renderStock(stock);
+  renderStockMovements(movements);
+  stockMovementForm.reset();
+  showToast("Stok hareketi işlendi ve malzeme miktarı güncellendi.");
+});
+
+editableStockList.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-remove-stock]");
+  if (!button) return;
+
+  const index = Number(button.dataset.removeStock);
+  const stock = readJson(storageKeys.stock) || [...seedStock];
+  stock.splice(index, 1);
+  saveJson(storageKeys.stock, stock);
+  renderStock(stock);
+  showToast("Malzeme stok listesinden kaldırıldı.");
+});
+
 const savedMetrics = readJson(storageKeys.metrics);
 if (savedMetrics) applyMetrics(savedMetrics, true);
 
@@ -415,6 +623,15 @@ if (savedPrices) applyPrices(savedPrices, true);
 
 const savedStaff = readJson(storageKeys.staff) || [...seedStaff];
 renderEditableStaff(savedStaff);
+
+const savedSpecialPrices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
+renderSpecialPrices(savedSpecialPrices);
+
+const savedStock = readJson(storageKeys.stock) || [...seedStock];
+renderStock(savedStock);
+
+const savedStockMovements = readJson(storageKeys.stockMovements) || [...seedStockMovements];
+renderStockMovements(savedStockMovements);
 
 applyDemoRole("all", false);
 renderSplitPreview();

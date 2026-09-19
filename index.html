@@ -551,6 +551,32 @@
               <button class="button button-secondary" type="submit">Fiyatları güncelle</button>
             </form>
           </article>
+          <article class="panel owner-controls" aria-label="Özel müşteri fiyatları" data-demo-scope="owner admin master">
+            <div class="panel-heading">
+              <span class="panel-kicker">Özel fiyat</span>
+              <h3>Müşteriye özel tutar tanımla</h3>
+            </div>
+            <form class="special-price-form" id="specialPriceForm">
+              <label>
+                Müşteri
+                <input name="customerName" placeholder="Örn. Mehmet A." required />
+              </label>
+              <label>
+                Hizmet
+                <input name="serviceName" placeholder="Saç + sakal" required />
+              </label>
+              <label>
+                Özel tutar
+                <input name="specialAmount" type="number" min="0" value="1750" required />
+              </label>
+              <label>
+                Not
+                <input name="specialNote" placeholder="Örn. sadık üye indirimi" />
+              </label>
+              <button class="button button-secondary" type="submit">Özel fiyatı kaydet</button>
+            </form>
+            <div class="editable-price-list" id="editablePriceList" aria-label="Özel müşteri fiyat listesi"></div>
+          </article>
           <article class="panel owner-controls" aria-label="İşletme sahibi ekip ayarları" data-demo-scope="owner admin">
             <div class="panel-heading">
               <span class="panel-kicker">Ekip ayarları</span>
@@ -645,6 +671,15 @@
               </div>
               <form class="checkout-form" id="checkoutForm">
                 <label>
+                  Müşteri
+                  <input name="checkoutCustomer" list="specialPriceCustomers" placeholder="Örn. Mehmet A." value="Mehmet A." />
+                  <datalist id="specialPriceCustomers"></datalist>
+                </label>
+                <label>
+                  Hizmet
+                  <input name="checkoutService" placeholder="Saç + sakal" value="Saç + sakal" />
+                </label>
+                <label>
                   İşlemi yapan
                   <select name="master">
                     <option value="owner">İsmail Gül</option>
@@ -654,7 +689,7 @@
                   </select>
                 </label>
                 <label>
-                  Hizmet tutarı
+                  Manuel tahsilat tutarı
                   <input name="amount" type="number" min="0" value="1750" />
                 </label>
                 <label>
@@ -848,26 +883,61 @@
             <article class="panel" data-demo-scope="owner admin">
               <div class="panel-heading">
                 <span class="panel-kicker">Stok</span>
-                <h3>Sarf malzeme</h3>
+                <h3>Malzeme listesi</h3>
               </div>
-              <div class="stock-list">
-                <div><span>Tek kullanımlık havlu</span><strong>42 adet</strong><small>Güvenli</small></div>
-                <div><span>Manikür seti</span><strong>9 paket</strong><small>Azalıyor</small></div>
-                <div><span>Pedikür hijyen kiti</span><strong>5 paket</strong><small>Kritik</small></div>
-                <div><span>Sakal bakım yağı</span><strong>18 şişe</strong><small>Güvenli</small></div>
-              </div>
+              <form class="stock-form" id="stockItemForm">
+                <label>
+                  Malzeme
+                  <input name="stockName" placeholder="Örn. Saç spreyi" required />
+                </label>
+                <label>
+                  Miktar
+                  <input name="stockQuantity" type="number" min="0" value="10" required />
+                </label>
+                <label>
+                  Birim
+                  <input name="stockUnit" placeholder="adet / paket / şişe" value="adet" required />
+                </label>
+                <label>
+                  Durum
+                  <select name="stockStatus">
+                    <option>Güvenli</option>
+                    <option>Azalıyor</option>
+                    <option>Kritik</option>
+                  </select>
+                </label>
+                <button class="button button-secondary" type="submit">Malzemeyi ekle</button>
+              </form>
+              <div class="stock-list" id="editableStockList" aria-label="Düzenlenebilir stok listesi"></div>
             </article>
             <article class="panel panel-dark" data-demo-scope="owner admin">
               <div class="panel-heading">
-                <span class="panel-kicker">Tüketim</span>
-                <h3>Bugünkü kullanım</h3>
+                <span class="panel-kicker">Stok hareketi</span>
+                <h3>Giren çıkan malzeme</h3>
               </div>
-              <div class="usage-grid">
-                <div><strong>18</strong><span>Havlu</span></div>
-                <div><strong>4</strong><span>Manikür kiti</span></div>
-                <div><strong>2</strong><span>Pedikür kiti</span></div>
-                <div><strong>7</strong><span>Sakal ürünü</span></div>
-              </div>
+              <form class="stock-form stock-movement-form" id="stockMovementForm">
+                <label>
+                  Malzeme
+                  <select name="movementStock" id="movementStockSelect"></select>
+                </label>
+                <label>
+                  Hareket
+                  <select name="movementType">
+                    <option value="in">Giriş</option>
+                    <option value="out">Çıkış</option>
+                  </select>
+                </label>
+                <label>
+                  Miktar
+                  <input name="movementQuantity" type="number" min="1" value="1" required />
+                </label>
+                <label>
+                  Not
+                  <input name="movementNote" placeholder="Örn. satış / yeni alım" />
+                </label>
+                <button class="button button-secondary" type="submit">Hareketi işle</button>
+              </form>
+              <div class="movement-list" id="stockMovementList" aria-label="Son stok hareketleri"></div>
             </article>
           </div>
         </section>

@@ -93,6 +93,8 @@ Başlangıç fiyat kurgusu örnek olarak şöyledir:
 
 İşletme sahibi bu fiyatları yönetim panelinden değiştirebilmelidir. Web prototipinde fiyatlar tarayıcı hafızasında saklanır; canlı üründe fiyat değişiklikleri veritabanında, değişiklik tarihi ve yapan kullanıcıyla birlikte tutulmalıdır.
 
+Baz fiyatlar sabit dursa bile müşteri bazlı özel fiyat tanımlanabilmelidir. Örneğin sadık üyeye, kurumsal müşteriye veya özel kombin hizmet alan üyeye farklı tutar girilebilir. Ödeme ekranında usta veya yetkili kişi manuel tahsilat tutarı girebilmelidir; sistem bu tutarı kasa hareketine, ödeme tipine ve varsa özel fiyat kaydına bağlamalıdır.
+
 ## Bakım seti mantığı
 
 Bakım seti, üyelik seviyesinden bağımsız seçilebilir hizmet kombinasyonudur. Üyelik seviyesi hangi setlere, hangi öncelikle ve hangi saatlerde erişilebileceğini belirler.
@@ -159,6 +161,24 @@ Patronun ayrı Excel tutmasına gerek kalmaması için personel finansı sistem 
 
 Bu alanlar patrona özeldir. Normal çalışan yalnızca kendi hesabını ve kendi ödemelerini görmelidir.
 
+## Stok ve malzeme hareketleri
+
+Stok listesi sabit olmamalıdır. İşletme sahibi veya yetkili admin dükkanda bulunan malzemeleri ekleyebilmeli, silebilmeli ve miktarını güncelleyebilmelidir.
+
+Takip edilmesi gereken örnek alanlar:
+
+- Malzeme adı
+- Miktar
+- Birim: adet, paket, şişe vb.
+- Durum: güvenli, azalıyor, kritik
+- Giriş hareketi
+- Çıkış hareketi
+- Hareket notu
+- Hareketi yapan kullanıcı
+- Hareket tarihi ve saati
+
+Canlı sistemde stok hareketi girildiği anda veritabanına yazılmalı, mevcut miktar anlık güncellenmeli ve kritik seviyeye düşen ürünler patron ekranında uyarı olarak görünmelidir.
+
 ## Yönetici göstergeleri
 
 Yönetici veya berber ustası günlük operasyonu tek panelden görmelidir:
@@ -201,6 +221,8 @@ Yönetici veya berber ustası günlük operasyonu tek panelden görmelidir:
 - Patron için personel maaş, alacak, borç ve içeride kalan para takibi
 - Usta için işlem sonrası ödeme kapatma ekranı
 - Ödeme tipi seçimi: nakit, kredi kartı, EFT/havale
+- Manuel tahsilat tutarı girişi
+- Müşteri bazlı özel fiyat tanımlama
 - Çalışan usta işleminde otomatik hak ediş/işletme payı hesabı
 - Çalışan ekip ve hizmet kırılımı
 - Kasa ödeme kırılımı
@@ -209,6 +231,7 @@ Yönetici veya berber ustası günlük operasyonu tek panelden görmelidir:
 - Üye hızlı kartları
 - Fiyat ve paket kartları
 - Stok ve sarf malzeme takibi
+- Stok giriş/çıkış hareketi ve anlık miktar güncelleme kurgusu
 - Kontrollü seans açma örneği
 - Hizmet kategorileri
 - Çoklu bakım seti seçimi
