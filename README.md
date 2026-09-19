@@ -42,11 +42,20 @@ npm run db:init
 npm start
 ```
 
+Node.js 22+ gerekir. Canlı sunucuda SQLite dosyası release klasöründen ayrı tutulmalıdır:
+
+```bash
+BERBERIM_DB_PATH=/opt/berberim/data/berberim.sqlite
+PORT=3002
+```
+
 Varsayılan API adresi:
 
 ```text
 http://localhost:3000/api/health
 ```
+
+Canlı yayında `berber.cagriza.com/api/*` istekleri Node.js servisine, diğer istekler statik web arayüzüne yönlendirilir. Böylece ekranlar aynı domain altında gerçek SQLite verisini kullanır.
 
 İlk eklenen API uçları:
 
