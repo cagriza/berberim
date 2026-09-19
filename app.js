@@ -60,6 +60,7 @@ const storageKeys = {
   stock: "berberimClub.stock.v1",
   stockMovements: "berberimClub.stockMovements.v1",
 };
+const apiBase = "";
 
 const seedStaff = [
   { name: "İsmail Gül", role: "Patron + usta", shift: "10:00-21:00", status: "Aktif" },
@@ -129,6 +130,84 @@ function readJson(key) {
     return JSON.parse(window.localStorage.getItem(key) || "null");
   } catch {
     return null;
+  }
+}
+
+async function apiRequest(path, options = {}) {
+  const response = await fetch(`${apiBase}${path}`, {
+    headers: {
+      "content-type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "İşlem tamamlanamadı." }));
+    throw new Error(error.error || "İşlem tamamlanamadı.");
+  }
+
+  return response.status === 204 ? null : response.json();
+}
+
+function stockStatusLabel(status) {
+  const labels = {
+    safe: "Güvenli",
+    low: "Azalıyor",
+    critical: "Kritik",
+    Güvenli: "Güvenli",
+    Azalıyor: "Azalıyor",
+    Kritik: "Kritik",
+  };
+  return labels[status] || status || "Güvenli";
+}
+
+function movementTypeLabel(type) {
+  return type === "in" ? "Giriş" : "Çıkış";
+}
+
+function normalizeStockItem(item) {
+  return {
+    id: item.id,
+    name: item.name,
+    quantity: Number(item.quantity || 0),
+    unit: item.unit || "adet",
+    status: stockStatusLabel(item.status),
+    minimumQuantity: Number(item.minimumQuantity || item.minimum_quantity || 0),
+  };
+}
+
+function normalizeStockMovement(movement) {
+  return {
+    id: movement.id,
+    name: movement.name,
+    type: movement.type || movement.movementType || "out",
+    quantity: Number(movement.quantity || 0),
+    note: movement.note || "",
+  };
+}
+
+async function refreshStockFromApi({ silent = false } = {}) {
+  try {
+    const [stockData, movementData] = await Promise.all([
+      apiRequest("/api/stock"),
+      apiRequest("/api/stock-movements"),
+    ]);
+    const stock = stockData.map(normalizeStockItem);
+    const movements = movementData.map(normalizeStockMovement);
+    saveJson(storageKeys.stock, stock);
+    saveJson(storageKeys.stockMovements, movements);
+    renderStock(stock);
+    renderStockMovements(movements);
+    if (!silent) showToast("Stok verileri veritabanından güncellendi.");
+    return true;
+  } catch {
+    const fallbackStock = readJson(storageKeys.stock) || [...seedStock];
+    const fallbackMovements = readJson(storageKeys.stockMovements) || [...seedStockMovements];
+    renderStock(fallbackStock);
+    renderStockMovements(fallbackMovements);
+    if (!silent) showToast("API kapalı olduğu için demo stok hafızası kullanılıyor.");
+    return false;
   }
 }
 
@@ -263,8 +342,8 @@ function renderStock(stock) {
     stockItem.innerHTML = `
       <span>${escapeHtml(item.name)}</span>
       <strong>${Number(item.quantity)} ${escapeHtml(item.unit)}</strong>
-      <small>${escapeHtml(item.status)}</small>
-      <button class="icon-button" type="button" data-remove-stock="${index}" title="Malzemeyi kaldır">×</button>
+      <small>${escapeHtml(stockStatusLabel(item.status))}</small>
+      <button class="icon-button" type="button" data-remove-stock="${index}" data-stock-id="${item.id || ""}" title="Malzemeyi kaldır">×</button>
     `;
     editableStockList.append(stockItem);
 
@@ -280,7 +359,7 @@ function renderStockMovements(movements) {
 
   movements.slice(0, 5).forEach((movement) => {
     const item = document.createElement("div");
-    const typeText = movement.type === "in" ? "Giriş" : "Çıkış";
+    const typeText = movementTypeLabel(movement.type);
     item.innerHTML = `
       <strong>${escapeHtml(typeText)} · ${Number(movement.quantity)}</strong>
       <span>${escapeHtml(movement.name)} · ${escapeHtml(movement.note || "Not yok")}</span>
@@ -554,24 +633,36 @@ editablePriceList.addEventListener("click", (event) => {
   showToast("Özel fiyat kaldırıldı.");
 });
 
-stockItemForm.addEventListener("submit", (event) => {
+stockItemForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = new FormData(stockItemForm);
-  const stock = readJson(storageKeys.stock) || [...seedStock];
-  stock.unshift({
+  const item = {
     name: String(data.get("stockName") || "").trim(),
     quantity: numberFromForm(data, "stockQuantity"),
     unit: String(data.get("stockUnit") || "adet").trim(),
+    minimumQuantity: 5,
     status: String(data.get("stockStatus") || "Güvenli"),
-  });
+  };
 
-  saveJson(storageKeys.stock, stock);
-  renderStock(stock);
+  try {
+    await apiRequest("/api/stock", {
+      method: "POST",
+      body: JSON.stringify(item),
+    });
+    await refreshStockFromApi({ silent: true });
+    showToast("Malzeme veritabanına eklendi.");
+  } catch {
+    const stock = readJson(storageKeys.stock) || [...seedStock];
+    stock.unshift(item);
+    saveJson(storageKeys.stock, stock);
+    renderStock(stock);
+    showToast("API kapalı. Malzeme demo hafızasına eklendi.");
+  }
+
   stockItemForm.reset();
-  showToast("Malzeme stok listesine eklendi.");
 });
 
-stockMovementForm.addEventListener("submit", (event) => {
+stockMovementForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = new FormData(stockMovementForm);
   const stock = readJson(storageKeys.stock) || [...seedStock];
@@ -580,6 +671,26 @@ stockMovementForm.addEventListener("submit", (event) => {
   const type = String(data.get("movementType") || "out");
   const quantity = numberFromForm(data, "movementQuantity");
   const item = stock.find((stockItem) => stockItem.name === name);
+  const note = String(data.get("movementNote") || "").trim();
+
+  if (item?.id) {
+    try {
+      await apiRequest(`/api/stock/${item.id}/movements`, {
+        method: "POST",
+        body: JSON.stringify({
+          movementType: type,
+          quantity,
+          note,
+        }),
+      });
+      await refreshStockFromApi({ silent: true });
+      stockMovementForm.reset();
+      showToast("Stok hareketi veritabanına işlendi.");
+      return;
+    } catch {
+      showToast("API kapalı. Hareket demo hafızasına işleniyor.");
+    }
+  }
 
   if (item) {
     item.quantity = type === "in" ? Number(item.quantity) + quantity : Math.max(Number(item.quantity) - quantity, 0);
@@ -592,7 +703,7 @@ stockMovementForm.addEventListener("submit", (event) => {
     name,
     type,
     quantity,
-    note: String(data.get("movementNote") || "").trim(),
+    note,
   });
 
   saveJson(storageKeys.stock, stock);
@@ -603,12 +714,25 @@ stockMovementForm.addEventListener("submit", (event) => {
   showToast("Stok hareketi işlendi ve malzeme miktarı güncellendi.");
 });
 
-editableStockList.addEventListener("click", (event) => {
+editableStockList.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-remove-stock]");
   if (!button) return;
 
   const index = Number(button.dataset.removeStock);
+  const stockId = Number(button.dataset.stockId || 0);
   const stock = readJson(storageKeys.stock) || [...seedStock];
+
+  if (stockId) {
+    try {
+      await apiRequest(`/api/stock/${stockId}`, { method: "DELETE" });
+      await refreshStockFromApi({ silent: true });
+      showToast("Malzeme veritabanında pasife alındı.");
+      return;
+    } catch {
+      showToast("API kapalı. Malzeme demo hafızasından kaldırılıyor.");
+    }
+  }
+
   stock.splice(index, 1);
   saveJson(storageKeys.stock, stock);
   renderStock(stock);
@@ -632,6 +756,7 @@ renderStock(savedStock);
 
 const savedStockMovements = readJson(storageKeys.stockMovements) || [...seedStockMovements];
 renderStockMovements(savedStockMovements);
+refreshStockFromApi({ silent: true });
 
 applyDemoRole("all", false);
 renderSplitPreview();

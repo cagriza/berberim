@@ -117,6 +117,17 @@ export function registerRoutes(app, db) {
     res.json({ id: stockItem.id, name: stockItem.name, quantity: nextQuantity, unit: stockItem.unit, status });
   });
 
+  app.delete("/api/stock/:id", (req, res) => {
+    const stockItem = get(db, "select * from stock_items where id = ? and active = 1", [Number(req.params.id)]);
+    if (!stockItem) {
+      res.status(404).json({ error: "Malzeme bulunamadı." });
+      return;
+    }
+
+    run(db, "update stock_items set active = 0, updated_at = datetime('now') where id = ?", [stockItem.id]);
+    res.json({ ok: true, id: stockItem.id });
+  });
+
   app.get("/api/stock-movements", (req, res) => {
     res.json(
       all(
