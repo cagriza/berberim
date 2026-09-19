@@ -67,6 +67,19 @@ function customerApplicationFromRow(row) {
   };
 }
 
+function statusText(status) {
+  const labels = {
+    open: "içeride",
+    in_progress: "içeride",
+    planned: "bekliyor",
+    completed: "tamamlandı",
+    cancelled: "iptal",
+    no_show: "gelmedi",
+    reschedule: "yeniden planlanacak",
+  };
+  return labels[status] || "takipte";
+}
+
 function ensureService(db, serviceName, amount = 0) {
   const name = String(serviceName || "").trim();
   const existing = get(db, "select * from services where name = ? limit 1", [name]);
@@ -465,6 +478,74 @@ export function registerRoutes(app, db) {
         order by service_sessions.starts_at is null, service_sessions.starts_at, service_sessions.id
         limit 12`
       )
+    );
+  });
+
+  app.get("/api/member-cards/today", (req, res) => {
+    const sessionRows = all(
+      db,
+      `select
+        service_sessions.id,
+        service_sessions.status,
+        service_sessions.note as sessionNote,
+        customer_profiles.full_name as customerName,
+        customer_profiles.membership_level as membershipLevel,
+        customer_profiles.private_notes as privateNotes,
+        coalesce(group_concat(services.name, ' + '), service_sessions.note) as serviceSummary,
+        payments.payment_type as paymentType
+      from service_sessions
+      join customer_profiles on customer_profiles.id = service_sessions.customer_id
+      left join service_session_items on service_session_items.session_id = service_sessions.id
+      left join services on services.id = service_session_items.service_id
+      left join payments on payments.session_id = service_sessions.id
+      group by service_sessions.id
+      order by service_sessions.id desc
+      limit 8`
+    );
+
+    if (sessionRows.length) {
+      res.json(
+        sessionRows.map((row) => {
+          const notes = parseCustomerNotes(row.privateNotes);
+          return {
+            id: row.id,
+            customerName: row.customerName,
+            membershipLevel: row.membershipLevel || "atelier",
+            status: statusText(row.status),
+            serviceSummary: row.serviceSummary || "Bakım seansı",
+            note:
+              row.paymentType && row.status === "completed"
+                ? `Tahsilat: ${row.paymentType.toLocaleLowerCase("tr-TR")} ile kapandı`
+                : notes.note || row.sessionNote || "Özel not yok",
+          };
+        })
+      );
+      return;
+    }
+
+    res.json(
+      all(
+        db,
+        `select
+          id,
+          full_name as customerName,
+          membership_level as membershipLevel,
+          membership_status as membershipStatus,
+          private_notes as privateNotes
+        from customer_profiles
+        order by id desc
+        limit 5`
+      ).map((row) => {
+        const notes = parseCustomerNotes(row.privateNotes);
+        return {
+          id: row.id,
+          customerName: row.customerName,
+          membershipLevel: row.membershipLevel || "candidate",
+          status: row.membershipStatus === "active" ? "bekliyor" : "aday",
+          serviceSummary: notes.intent || "Bakım başvurusu",
+          note: notes.note || "Özel not yok",
+        };
+      })
     );
   });
 

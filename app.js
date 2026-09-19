@@ -34,6 +34,7 @@ const openSlotButton = document.querySelector("#openSlotButton");
 const visitFlow = document.querySelector("#visitFlow");
 const exceptionList = document.querySelector("#exceptionList");
 const seedExceptionsButton = document.querySelector("#seedExceptionsButton");
+const memberQuickList = document.querySelector("#memberQuickList");
 const copyInviteButton = document.querySelector("#copyInviteButton");
 const demoLoginForm = document.querySelector("#demoLoginForm");
 const demoUserSelect = document.querySelector("#demoUserSelect");
@@ -94,6 +95,7 @@ const storageKeys = {
   sessions: "berberimClub.sessions.v1",
   exceptions: "berberimClub.exceptions.v1",
   floorStatus: "berberimClub.floorStatus.v1",
+  memberCards: "berberimClub.memberCards.v1",
   specialPrices: "berberimClub.specialPrices.v1",
   stock: "berberimClub.stock.v1",
   stockMovements: "berberimClub.stockMovements.v1",
@@ -222,6 +224,30 @@ const seedFloorStatus = {
   completed: 18,
   openPayment: 1,
 };
+
+const seedMemberCards = [
+  {
+    customerName: "Çağrı Z.",
+    membershipLevel: "Atelier",
+    status: "içeride",
+    serviceSummary: "saç + manikür + pedikür",
+    note: "Son not: el bakımında mat bitiş",
+  },
+  {
+    customerName: "Mert A.",
+    membershipLevel: "Essential",
+    status: "bekliyor",
+    serviceSummary: "saç + sakal",
+    note: "Son not: sakal kontürü keskin",
+  },
+  {
+    customerName: "Emre K.",
+    membershipLevel: "Private",
+    status: "tamamlandı",
+    serviceSummary: "tam bakım",
+    note: "Tahsilat: kart ile kapandı",
+  },
+];
 
 const seedCashDetails = {
   grossAmount: 24850,
@@ -916,6 +942,47 @@ async function refreshFloorStatusFromApi({ silent = false } = {}) {
   }
 }
 
+function normalizeMemberCard(card) {
+  return {
+    id: card.id,
+    customerName: card.customerName || "Üye",
+    membershipLevel: card.membershipLevel || "atelier",
+    status: card.status || "takipte",
+    serviceSummary: card.serviceSummary || "Bakım seansı",
+    note: card.note || "Özel not yok",
+  };
+}
+
+function renderMemberCards(cards) {
+  memberQuickList.innerHTML = "";
+
+  cards.slice(0, 5).forEach((card) => {
+    const item = document.createElement("div");
+    item.innerHTML = `
+      <strong>${escapeHtml(card.customerName)}</strong>
+      <span>${escapeHtml(card.membershipLevel)} · ${escapeHtml(card.status)} · ${escapeHtml(card.serviceSummary)}</span>
+      <small>${escapeHtml(card.note)}</small>
+    `;
+    memberQuickList.append(item);
+  });
+}
+
+async function refreshMemberCardsFromApi({ silent = false } = {}) {
+  try {
+    const cards = (await apiRequest("/api/member-cards/today")).map(normalizeMemberCard);
+    const visibleCards = cards.length ? cards : [...seedMemberCards];
+    saveJson(storageKeys.memberCards, visibleCards);
+    renderMemberCards(visibleCards);
+    if (!silent) showToast("Bugünkü üye kartları veritabanından güncellendi.");
+    return true;
+  } catch {
+    const fallbackCards = readJson(storageKeys.memberCards) || [...seedMemberCards];
+    renderMemberCards(fallbackCards);
+    if (!silent) showToast("API kapalı olduğu için demo üye kartları kullanılıyor.");
+    return false;
+  }
+}
+
 function calculateSplit(masterType, amount) {
   if (masterType === "owner") {
     return {
@@ -1135,6 +1202,7 @@ openSlotButton.addEventListener("click", async () => {
     );
     await refreshSessionsFromApi({ silent: true });
     await refreshFloorStatusFromApi({ silent: true });
+    await refreshMemberCardsFromApi({ silent: true });
     slotFeedback.textContent = `${session.customerName} için ${session.serviceSummary} seansı veritabanına açıldı.`;
     showToast("Kontrollü seans veritabanına açıldı.");
     return;
@@ -1151,6 +1219,16 @@ openSlotButton.addEventListener("click", async () => {
   });
   saveJson(storageKeys.sessions, sessions);
   renderSessions(sessions);
+  const memberCards = readJson(storageKeys.memberCards) || [...seedMemberCards];
+  memberCards.unshift({
+    customerName: "Çağrı Z.",
+    membershipLevel: "Atelier",
+    status: "içeride",
+    serviceSummary: "Saç + manikür + pedikür",
+    note: "Son not: el bakımında mat bitiş",
+  });
+  saveJson(storageKeys.memberCards, memberCards);
+  renderMemberCards(memberCards);
   const floorStatus = normalizeFloorStatus(readJson(storageKeys.floorStatus) || seedFloorStatus);
   floorStatus.inside += 1;
   saveJson(storageKeys.floorStatus, floorStatus);
@@ -1171,6 +1249,7 @@ seedExceptionsButton.addEventListener("click", async () => {
     saveJson(storageKeys.exceptions, exceptions);
     renderExceptions(exceptions);
     await refreshFloorStatusFromApi({ silent: true });
+    await refreshMemberCardsFromApi({ silent: true });
     showToast("İptal ve gelmedi takip kayıtları veritabanına işlendi.");
     return;
   } catch {
@@ -1404,6 +1483,7 @@ checkoutForm.addEventListener("submit", async (event) => {
     await refreshStaffFinanceFromApi({ silent: true });
     await refreshCashDetailsFromApi({ silent: true });
     await refreshFloorStatusFromApi({ silent: true });
+    await refreshMemberCardsFromApi({ silent: true });
     return;
   } catch {
     showToast("API kapalı. Ödeme demo akışında gösteriliyor.");
@@ -1650,5 +1730,9 @@ refreshExceptionsFromApi({ silent: true });
 const savedFloorStatus = readJson(storageKeys.floorStatus) || seedFloorStatus;
 renderFloorStatus(savedFloorStatus);
 refreshFloorStatusFromApi({ silent: true });
+
+const savedMemberCards = readJson(storageKeys.memberCards) || [...seedMemberCards];
+renderMemberCards(savedMemberCards);
+refreshMemberCardsFromApi({ silent: true });
 
 renderSplitPreview();
