@@ -65,6 +65,15 @@ const metricStaff = document.querySelector("#metricStaff");
 const metricStaffDetail = document.querySelector("#metricStaffDetail");
 const metricVisitors = document.querySelector("#metricVisitors");
 const metricVisitorDetail = document.querySelector("#metricVisitorDetail");
+const ownerGrossCash = document.querySelector("#ownerGrossCash");
+const ownerStaffShares = document.querySelector("#ownerStaffShares");
+const ownerStaffDebt = document.querySelector("#ownerStaffDebt");
+const ownerNetCash = document.querySelector("#ownerNetCash");
+const cashCardTotal = document.querySelector("#cashCardTotal");
+const cashCashTotal = document.querySelector("#cashCashTotal");
+const cashOnlineTotal = document.querySelector("#cashOnlineTotal");
+const cashAverageTicket = document.querySelector("#cashAverageTicket");
+const cashLedger = document.querySelector("#cashLedger");
 const priceTargets = document.querySelectorAll("[data-price-target]");
 const storageKeys = {
   metrics: "berberimClub.metrics.v2",
@@ -74,6 +83,7 @@ const storageKeys = {
   applications: "berberimClub.applications.v1",
   staff: "berberimClub.staff.v2",
   staffFinance: "berberimClub.staffFinance.v1",
+  cashDetails: "berberimClub.cashDetails.v1",
   specialPrices: "berberimClub.specialPrices.v1",
   stock: "berberimClub.stock.v1",
   stockMovements: "berberimClub.stockMovements.v1",
@@ -183,6 +193,38 @@ const seedStockMovements = [
   { name: "Manikür seti", type: "out", quantity: 4, note: "Manikür seansları" },
   { name: "Pedikür hijyen kiti", type: "in", quantity: 6, note: "Yeni alım" },
 ];
+
+const seedCashDetails = {
+  grossAmount: 24850,
+  paymentCount: 18,
+  averageTicket: 1380,
+  staffShares: 9625,
+  staffDebt: 6750,
+  netAmount: 15225,
+  totals: {
+    card: 16900,
+    cash: 5250,
+    online: 2700,
+  },
+  movements: [
+    {
+      paidAt: "2026-09-19 19:20:00",
+      customerName: "Mehmet A.",
+      serviceName: "Saç + sakal",
+      paymentType: "Kredi kartı",
+      staffShare: 875,
+      businessShare: 875,
+    },
+    {
+      paidAt: "2026-09-19 18:40:00",
+      customerName: "Çağrı Z.",
+      serviceName: "Saç + manikür + pedikür",
+      paymentType: "EFT/Havale",
+      staffShare: 940,
+      businessShare: 1410,
+    },
+  ],
+};
 
 function escapeHtml(value) {
   return value.replace(/[&<>"']/g, (character) => {
@@ -663,6 +705,84 @@ function renderStockMovements(movements) {
   });
 }
 
+function formatTime(value) {
+  if (!value) return "--:--";
+  const date = new Date(String(value).replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) return String(value).slice(11, 16) || "--:--";
+  return new Intl.DateTimeFormat("tr-TR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function normalizeCashDetails(details) {
+  return {
+    grossAmount: Number(details.grossAmount || 0),
+    paymentCount: Number(details.paymentCount || 0),
+    averageTicket: Number(details.averageTicket || 0),
+    staffShares: Number(details.staffShares || 0),
+    staffDebt: Number(details.staffDebt || 0),
+    netAmount: Number(details.netAmount || 0),
+    totals: {
+      card: Number(details.totals?.card || 0),
+      cash: Number(details.totals?.cash || 0),
+      online: Number(details.totals?.online || 0),
+    },
+    movements: Array.isArray(details.movements) ? details.movements : [],
+  };
+}
+
+function renderCashDetails(details) {
+  const cash = normalizeCashDetails(details);
+  ownerGrossCash.textContent = formatCurrency(cash.grossAmount);
+  ownerStaffShares.textContent = formatCurrency(cash.staffShares);
+  ownerStaffDebt.textContent = formatCurrency(cash.staffDebt);
+  ownerNetCash.textContent = formatCurrency(cash.netAmount);
+  cashCardTotal.textContent = formatCurrency(cash.totals.card);
+  cashCashTotal.textContent = formatCurrency(cash.totals.cash);
+  cashOnlineTotal.textContent = formatCurrency(cash.totals.online);
+  cashAverageTicket.textContent = formatCurrency(cash.averageTicket);
+
+  cashLedger.innerHTML = `
+    <div class="cash-ledger-head">
+      <span>Saat</span>
+      <span>Müşteri</span>
+      <span>Hizmet</span>
+      <span>Ödeme</span>
+      <span>Usta payı</span>
+      <span>İşletme payı</span>
+    </div>
+  `;
+
+  cash.movements.slice(0, 8).forEach((movement) => {
+    const row = document.createElement("div");
+    row.innerHTML = `
+      <span>${escapeHtml(formatTime(movement.paidAt))}</span>
+      <strong>${escapeHtml(String(movement.customerName || "Müşteri"))}</strong>
+      <span>${escapeHtml(String(movement.serviceName || "Hizmet"))}</span>
+      <span>${escapeHtml(String(movement.paymentType || "Ödeme"))}</span>
+      <span>${formatCurrency(Number(movement.staffShare || 0))}</span>
+      <span>${formatCurrency(Number(movement.businessShare || 0))}</span>
+    `;
+    cashLedger.append(row);
+  });
+}
+
+async function refreshCashDetailsFromApi({ silent = false } = {}) {
+  try {
+    const details = normalizeCashDetails(await apiRequest("/api/cash/details"));
+    saveJson(storageKeys.cashDetails, details);
+    renderCashDetails(details);
+    if (!silent) showToast("Kasa detayları veritabanından güncellendi.");
+    return true;
+  } catch {
+    const fallbackDetails = readJson(storageKeys.cashDetails) || seedCashDetails;
+    renderCashDetails(fallbackDetails);
+    if (!silent) showToast("API kapalı olduğu için demo kasa detayları kullanılıyor.");
+    return false;
+  }
+}
+
 function calculateSplit(masterType, amount) {
   if (masterType === "owner") {
     return {
@@ -1091,10 +1211,32 @@ checkoutForm.addEventListener("submit", async (event) => {
       `${formatCurrency(result.amount)} ${paymentType.toLocaleLowerCase("tr-TR")} ile kasaya geçti. Usta payı ${formatCurrency(result.staffShare)}.`
     );
     await refreshStaffFinanceFromApi({ silent: true });
+    await refreshCashDetailsFromApi({ silent: true });
     return;
   } catch {
     showToast("API kapalı. Ödeme demo akışında gösteriliyor.");
   }
+
+  const split = calculateSplit(masterType, amount);
+  const cashDetails = normalizeCashDetails(readJson(storageKeys.cashDetails) || seedCashDetails);
+  cashDetails.grossAmount += amount;
+  cashDetails.paymentCount += 1;
+  cashDetails.averageTicket = Math.round(cashDetails.grossAmount / cashDetails.paymentCount);
+  cashDetails.staffShares += split.masterShare;
+  cashDetails.netAmount += split.houseShare;
+  if (paymentType.toLocaleLowerCase("tr-TR").includes("kart")) cashDetails.totals.card += amount;
+  else if (paymentType.toLocaleLowerCase("tr-TR").includes("nakit")) cashDetails.totals.cash += amount;
+  else cashDetails.totals.online += amount;
+  cashDetails.movements.unshift({
+    paidAt: new Date().toISOString(),
+    customerName,
+    serviceName,
+    paymentType,
+    staffShare: split.masterShare,
+    businessShare: split.houseShare,
+  });
+  saveJson(storageKeys.cashDetails, cashDetails);
+  renderCashDetails(cashDetails);
 
   const priceNote = specialPrice ? " Özel fiyat kaydıyla eşleşti." : "";
   showToast(`${formatCurrency(amount)} ${paymentType.toLocaleLowerCase("tr-TR")} ile kasaya geçti.${priceNote}`);
@@ -1295,5 +1437,9 @@ renderStock(savedStock);
 const savedStockMovements = readJson(storageKeys.stockMovements) || [...seedStockMovements];
 renderStockMovements(savedStockMovements);
 refreshStockFromApi({ silent: true });
+
+const savedCashDetails = readJson(storageKeys.cashDetails) || seedCashDetails;
+renderCashDetails(savedCashDetails);
+refreshCashDetailsFromApi({ silent: true });
 
 renderSplitPreview();

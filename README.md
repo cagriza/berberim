@@ -73,6 +73,7 @@ http://localhost:3000/api/health
 - `POST /api/stock/:id/movements`
 - `DELETE /api/stock/:id`
 - `GET /api/stock-movements`
+- `GET /api/cash/details`
 - `GET /api/cash/summary`
 
 Frontend stok bölümü API açıksa SQLite veritabanını kullanır. API kapalıysa demo akışının bozulmaması için tarayıcı hafızasına düşer.

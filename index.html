@@ -777,9 +777,9 @@
               </div>
               <div class="owner-profit-grid">
                 <div><span>Bugünkü brüt kasa</span><strong id="ownerGrossCash">₺24.850</strong></div>
-                <div><span>Usta hak edişleri</span><strong>₺9.625</strong></div>
-                <div><span>Personel borç/avans</span><strong>₺6.750</strong></div>
-                <div><span>Patron net görünüm</span><strong>₺15.225</strong></div>
+                <div><span>Usta hak edişleri</span><strong id="ownerStaffShares">₺9.625</strong></div>
+                <div><span>Personel borç/avans</span><strong id="ownerStaffDebt">₺6.750</strong></div>
+                <div><span>Patron net görünüm</span><strong id="ownerNetCash">₺15.225</strong></div>
               </div>
             </article>
           </div>
@@ -860,10 +860,20 @@
                 <h3>Ödeme kırılımı</h3>
               </div>
               <div class="cash-grid">
-                <div><span>Kart</span><strong>₺16.900</strong></div>
-                <div><span>Nakit</span><strong>₺5.250</strong></div>
-                <div><span>Online</span><strong>₺2.700</strong></div>
-                <div><span>Ortalama sepet</span><strong>₺1.380</strong></div>
+                <div><span>Kart</span><strong id="cashCardTotal">₺16.900</strong></div>
+                <div><span>Nakit</span><strong id="cashCashTotal">₺5.250</strong></div>
+                <div><span>Online</span><strong id="cashOnlineTotal">₺2.700</strong></div>
+                <div><span>Ortalama sepet</span><strong id="cashAverageTicket">₺1.380</strong></div>
+              </div>
+              <div class="cash-ledger" id="cashLedger" aria-label="Son kasa hareketleri">
+                <div class="cash-ledger-head">
+                  <span>Saat</span>
+                  <span>Müşteri</span>
+                  <span>Hizmet</span>
+                  <span>Ödeme</span>
+                  <span>Usta payı</span>
+                  <span>İşletme payı</span>
+                </div>
               </div>
             </article>
             <article class="panel" data-demo-scope="master owner">

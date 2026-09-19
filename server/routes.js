@@ -828,6 +828,72 @@ export function registerRoutes(app, db) {
     );
   });
 
+  app.get("/api/cash/details", (req, res) => {
+    const summary = get(
+      db,
+      `select
+        coalesce(sum(payments.amount), 0) as grossAmount,
+        count(*) as paymentCount,
+        coalesce(avg(payments.amount), 0) as averageTicket
+       from payments`
+    );
+    const paymentTotals = all(
+      db,
+      `select payment_type as paymentType, coalesce(sum(amount), 0) as amount
+       from payments
+       group by payment_type`
+    );
+    const staffShares = get(db, "select coalesce(sum(staff_share), 0) as amount from staff_earnings");
+    const staffDebt = get(
+      db,
+      `select coalesce(sum(case when movement_type in ('advance', 'debt') then amount else 0 end), 0) as amount
+       from staff_account_movements`
+    );
+    const movements = all(
+      db,
+      `select
+        payments.id,
+        payments.paid_at as paidAt,
+        payments.payment_type as paymentType,
+        payments.amount,
+        customer_profiles.full_name as customerName,
+        services.name as serviceName,
+        coalesce(staff_earnings.staff_share, 0) as staffShare,
+        coalesce(staff_earnings.business_share, payments.amount) as businessShare
+      from payments
+      join service_sessions on service_sessions.id = payments.session_id
+      join customer_profiles on customer_profiles.id = service_sessions.customer_id
+      left join service_session_items on service_session_items.session_id = service_sessions.id
+      left join services on services.id = service_session_items.service_id
+      left join staff_earnings on staff_earnings.payment_id = payments.id
+      order by payments.id desc
+      limit 10`
+    );
+
+    const totals = {
+      card: 0,
+      cash: 0,
+      online: 0,
+    };
+    paymentTotals.forEach((row) => {
+      const paymentType = String(row.paymentType || "").toLocaleLowerCase("tr-TR");
+      if (paymentType.includes("kart")) totals.card += Number(row.amount || 0);
+      else if (paymentType.includes("nakit")) totals.cash += Number(row.amount || 0);
+      else totals.online += Number(row.amount || 0);
+    });
+
+    res.json({
+      grossAmount: Number(summary.grossAmount || 0),
+      paymentCount: Number(summary.paymentCount || 0),
+      averageTicket: Number(summary.averageTicket || 0),
+      staffShares: Number(staffShares.amount || 0),
+      staffDebt: Number(staffDebt.amount || 0),
+      netAmount: Number(summary.grossAmount || 0) - Number(staffShares.amount || 0),
+      totals,
+      movements,
+    });
+  });
+
   app.get("/api/cash/summary", (req, res) => {
     const summary = get(
       db,
