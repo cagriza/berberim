@@ -15,14 +15,12 @@ Berberim Club, onaylı üyelik ve kontrollü seans erişimiyle çalışan web ta
 
 ## Mevcut durum
 
-Bu depo şu anda web prototipi ve ilk Node.js + Express + SQLite backend iskeletini içerir.
+Bu depo şu anda web prototipi ve ilk Node.js + Express + SQLite backend iskeletini içerir. Stok, özel fiyat, ödeme, personel ve personel hesap hareketleri SQLite API'ye bağlanmıştır.
 
 Canlı ürün için sonraki adımlar:
 
-- Kalıcı veritabanı ve kimlik doğrulama
-- SQLite tabanlı gerçek veri modeli
+- Kimlik doğrulama ve rol bazlı gerçek giriş akışı
 - Yönetici paneli yetkilendirmesi
-- Personel maaş, avans, alacak ve borç veritabanı
 - Kasa hareketleri ve ödeme entegrasyonu
 - SMS/WhatsApp bildirimleri
 - Üyelik segmentleri ve ödeme entegrasyonu
