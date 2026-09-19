@@ -20,6 +20,7 @@ Bu depo şu anda bağımlılıksız çalışan bir web prototipi içerir. `index
 Canlı ürün için sonraki adımlar:
 
 - Kalıcı veritabanı ve kimlik doğrulama
+- SQLite tabanlı gerçek veri modeli
 - Yönetici paneli yetkilendirmesi
 - Personel maaş, avans, alacak ve borç veritabanı
 - Kasa hareketleri ve ödeme entegrasyonu

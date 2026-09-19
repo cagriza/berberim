@@ -245,7 +245,7 @@ Yönetici veya berber ustası günlük operasyonu tek panelden görmelidir:
 Backend için sade ve bakımı kolay bir yapı önerilir:
 
 - ASP.NET Core veya Node.js API
-- PostgreSQL veya SQLite başlangıç veritabanı
+- SQLite başlangıç veritabanı
 - Sunucu taraflı oturum ve rol yönetimi
 - Caddy ile `berber.cagriza.com` reverse proxy
 - Admin için ayrı giriş ekranı
