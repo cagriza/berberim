@@ -24,7 +24,27 @@ Berberim Club herkese açık saat listesi mantığıyla çalışmaz. Kullanıcı
    - Bir seans için birden fazla bakım seti seçebilir.
    - Gerekirse seans talebi bırakır.
 
-3. İşletme
+3. Admin paneli
+   - Kullanıcı, rol, yetki ve hizmet kataloğunu yönetir.
+   - Fiyat listesi, şube ayarı, denetim kaydı ve sistem kurallarını düzenler.
+   - Günlük işletme akışına doğrudan müdahale etmekten çok sistem ayarlarını kontrol eder.
+
+4. Patron ekranı
+   - İsmail Gül için tam yetkili ekrandır.
+   - Patron aynı zamanda usta olduğu için hem kendi işlemlerini hem tüm işletme finansını görür.
+   - Tüm kasa, ödeme, personel maaşı, alacak, borç, avans, içeride kalan para ve mahrem üye notlarına erişebilir.
+   - Çalışan bazlı günlük kazanç, hak ediş ve işletme payını izler.
+
+5. Usta ekranı
+   - Çalışan usta yalnızca kendi seanslarını ve kendi müşterilerini görür.
+   - İşlem bitince ödeme kapatma ekranından tahsilat tipini seçer: nakit, kredi kartı, EFT/havale.
+   - Ödeme alındı dediğinde tutar kasaya geçer.
+   - Kendi hak edişini, alacağını, avans/borç durumunu ve içeride kalan parasını görür; diğer çalışanların maaşını veya patronun mahrem verilerini göremez.
+
+6. Müşteri ekranı
+   - Üyelik bilgisi, bakım geçmişi, kendisine açılan seanslar ve kişisel bakım notlarını görür.
+
+7. İşletme
    - Başvuruları değerlendirir.
    - Üye segmentlerini yönetir.
    - Seansları belirli üyelere veya segmentlere açar.
@@ -90,9 +110,54 @@ Kapasite tarafında sistem yalnızca boş saat var mı diye bakmaz. Aynı anda g
 
 ## Ekip kurgusu
 
-- Yasin Kılıç: baş usta, klasik kesim ve sakal formu.
-- Emir Arman: stil uzmanı, modern kesim ve özel gün hazırlığı.
-- Deniz Nur: bakım uzmanı, manikür ve pedikür.
+- İsmail Gül: patron ve baş usta, klasik kesim, sakal formu ve işletme kontrolü.
+- Faruk Usta: berber ustası, modern kesim ve özel gün hazırlığı.
+- Ali Usta: berber ustası, hızlı saç-sakal akışı ve düzenli üye bakımı.
+- Elif Zeren: el-ayak bakım uzmanı, manikür ve pedikür.
+
+Örnek işletme kadrosu:
+
+- İsmail Gül: patron ve usta, tam yetkili.
+- 2 berber ustası: kendi seans, ödeme ve hak ediş ekranına sahip çalışanlar.
+- 3 yardımcı personel: karşılama, hazırlık, temizlik ve destek görevleri.
+- 1 el-ayak bakım uzmanı: manikür ve pedikür hizmetlerinden sorumlu uzman.
+
+## Kasa, ödeme ve hak ediş mantığı
+
+İşlem bittiğinde çalışan usta veya bakım uzmanı ödeme kapatma ekranına geçer. Bu ekranda hizmet tutarı, ödeme tipi ve işlemi yapan kişi seçilir. Ödeme alındı denildiğinde tutar kasaya işlenir ve patron ekranındaki kasa detayına düşer.
+
+Örnek kural:
+
+- İşlemi İsmail Gül yaptıysa tutarın tamamı patron/işletme tarafındadır.
+- İşlemi çalışan usta yaptıysa örnek demo kuralında tutar ikiye bölünür.
+- 1.750 TL saç ve sakal işleminde çalışan usta payı 875 TL, işletme payı 875 TL olarak görünür.
+- Bakım uzmanı için ayrı komisyon veya yüzde kuralı tanımlanabilir.
+
+Kasa detaylarında tarih bazında şu bilgiler tutulmalıdır:
+
+- Hangi usta hangi işlemi yaptı
+- Hizmet toplamı
+- Ödeme tipi
+- Kasa girişi
+- Usta hak edişi
+- İşletme payı
+- Tahsilatı alan kullanıcı
+- İşlemin kapandığı tarih ve saat
+
+## Personel maaş, alacak ve borç takibi
+
+Patronun ayrı Excel tutmasına gerek kalmaması için personel finansı sistem içinde olmalıdır:
+
+- Maaş
+- Prim veya hak ediş
+- Avans
+- Borç
+- Ödenen tutar
+- İçeride kalan para
+- Tarihli ödeme geçmişi
+- Personel bazlı bakiye
+
+Bu alanlar patrona özeldir. Normal çalışan yalnızca kendi hesabını ve kendi ödemelerini görmelidir.
 
 ## Yönetici göstergeleri
 
@@ -132,6 +197,11 @@ Yönetici veya berber ustası günlük operasyonu tek panelden görmelidir:
 - İşletme sahibi metrik düzenleme paneli
 - İşletme sahibi fiyat düzenleme paneli
 - İşletme sahibi çalışan ve vardiya düzenleme paneli
+- Admin, patron, usta ve müşteri rol kurgusu
+- Patron için personel maaş, alacak, borç ve içeride kalan para takibi
+- Usta için işlem sonrası ödeme kapatma ekranı
+- Ödeme tipi seçimi: nakit, kredi kartı, EFT/havale
+- Çalışan usta işleminde otomatik hak ediş/işletme payı hesabı
 - Çalışan ekip ve hizmet kırılımı
 - Kasa ödeme kırılımı
 - Gün akışı, iptal ve gelmedi takibi

@@ -29,7 +29,10 @@ const copyInviteButton = document.querySelector("#copyInviteButton");
 const ownerMetricsForm = document.querySelector("#ownerMetricsForm");
 const ownerPricingForm = document.querySelector("#ownerPricingForm");
 const ownerStaffForm = document.querySelector("#ownerStaffForm");
+const checkoutForm = document.querySelector("#checkoutForm");
 const editableStaffList = document.querySelector("#editableStaffList");
+const splitPreview = document.querySelector("#splitPreview");
+const checkoutFeedback = document.querySelector("#checkoutFeedback");
 const metricTransactions = document.querySelector("#metricTransactions");
 const metricTransactionDetail = document.querySelector("#metricTransactionDetail");
 const metricRevenue = document.querySelector("#metricRevenue");
@@ -40,16 +43,19 @@ const metricVisitors = document.querySelector("#metricVisitors");
 const metricVisitorDetail = document.querySelector("#metricVisitorDetail");
 const priceTargets = document.querySelectorAll("[data-price-target]");
 const storageKeys = {
-  metrics: "berberimClub.metrics",
+  metrics: "berberimClub.metrics.v2",
   prices: "berberimClub.prices",
-  staff: "berberimClub.staff",
+  staff: "berberimClub.staff.v2",
 };
 
 const seedStaff = [
-  { name: "Yasin Kılıç", role: "Usta", shift: "10:00-19:00", status: "Aktif" },
-  { name: "Emir Arman", role: "Usta", shift: "12:00-21:00", status: "Aktif" },
-  { name: "Deniz Nur", role: "Bakım uzmanı", shift: "11:00-20:00", status: "Aktif" },
-  { name: "Destek", role: "Destek", shift: "10:00-18:00", status: "Aktif" },
+  { name: "İsmail Gül", role: "Patron + usta", shift: "10:00-21:00", status: "Aktif" },
+  { name: "Faruk Usta", role: "Usta", shift: "10:00-19:00", status: "Aktif" },
+  { name: "Ali Usta", role: "Usta", shift: "12:00-21:00", status: "Aktif" },
+  { name: "Elif Zeren", role: "Bakım uzmanı", shift: "11:00-20:00", status: "Aktif" },
+  { name: "Yardımcı 1", role: "Destek", shift: "10:00-18:00", status: "Aktif" },
+  { name: "Yardımcı 2", role: "Destek", shift: "11:00-19:00", status: "Aktif" },
+  { name: "Yardımcı 3", role: "Destek", shift: "13:00-21:00", status: "Aktif" },
 ];
 
 function escapeHtml(value) {
@@ -111,7 +117,7 @@ function applyMetrics(metrics, shouldFillForm = false) {
   metricRevenue.textContent = formatCurrency(revenue);
   metricCareRevenue.textContent = `${formatCurrency(careRevenue)} bakım setlerinden`;
   metricStaff.textContent = String(staff);
-  metricStaffDetail.textContent = `${Math.max(staff - 2, 0)} usta · 1 bakım uzmanı · 1 destek`;
+  metricStaffDetail.textContent = `3 usta · 1 bakım uzmanı · ${Math.max(staff - 4, 0)} destek`;
   metricVisitors.textContent = String(visitors);
   metricVisitorDetail.textContent = `${memberVisitors} üye · ${candidateVisitors} aday/ziyaretçi`;
 
@@ -141,7 +147,7 @@ function applyPrices(prices, shouldFillForm = false) {
 
 function summarizeStaff(staff) {
   const activeStaff = staff.filter((person) => person.status !== "İzinli");
-  const masters = activeStaff.filter((person) => person.role === "Usta").length;
+  const masters = activeStaff.filter((person) => person.role.toLocaleLowerCase("tr-TR").includes("usta")).length;
   const careExperts = activeStaff.filter((person) => person.role === "Bakım uzmanı").length;
   const support = activeStaff.filter((person) => person.role === "Destek").length;
 
@@ -166,6 +172,49 @@ function renderEditableStaff(staff) {
   });
 
   summarizeStaff(staff);
+}
+
+function calculateSplit(masterType, amount) {
+  if (masterType === "owner") {
+    return {
+      cash: amount,
+      masterShare: 0,
+      houseShare: amount,
+      note: "İşlemi patron yaptığı için tutarın tamamı İsmail Gül tarafında kalır.",
+    };
+  }
+
+  if (masterType === "care") {
+    const masterShare = Math.round(amount * 0.4);
+    return {
+      cash: amount,
+      masterShare,
+      houseShare: amount - masterShare,
+      note: "Bakım uzmanı işlemlerinde örnek hak ediş yüzde 40 olarak gösterildi.",
+    };
+  }
+
+  const masterShare = Math.round(amount / 2);
+  return {
+    cash: amount,
+    masterShare,
+    houseShare: amount - masterShare,
+    note: "Çalışan usta işleminde tutar otomatik yarı yarıya bölünür.",
+  };
+}
+
+function renderSplitPreview() {
+  const data = new FormData(checkoutForm);
+  const masterType = String(data.get("master") || "employee");
+  const amount = numberFromForm(data, "amount");
+  const split = calculateSplit(masterType, amount);
+
+  splitPreview.innerHTML = `
+    <div><span>Kasa girişi</span><strong>${formatCurrency(split.cash)}</strong></div>
+    <div><span>Usta/uzman payı</span><strong>${formatCurrency(split.masterShare)}</strong></div>
+    <div><span>İşletme payı</span><strong>${formatCurrency(split.houseShare)}</strong></div>
+  `;
+  checkoutFeedback.textContent = split.note;
 }
 
 function renderQueue() {
@@ -299,6 +348,17 @@ ownerStaffForm.addEventListener("submit", (event) => {
   showToast("Çalışan ve vardiya listesi güncellendi.");
 });
 
+checkoutForm.addEventListener("input", renderSplitPreview);
+
+checkoutForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const data = new FormData(checkoutForm);
+  const paymentType = String(data.get("paymentType") || "Ödeme");
+  const amount = numberFromForm(data, "amount");
+  renderSplitPreview();
+  showToast(`${formatCurrency(amount)} ${paymentType.toLocaleLowerCase("tr-TR")} ile kasaya geçti.`);
+});
+
 editableStaffList.addEventListener("click", (event) => {
   const button = event.target.closest("[data-remove-staff]");
   if (!button) return;
@@ -320,4 +380,5 @@ if (savedPrices) applyPrices(savedPrices, true);
 const savedStaff = readJson(storageKeys.staff) || [...seedStaff];
 renderEditableStaff(savedStaff);
 
+renderSplitPreview();
 renderQueue();
