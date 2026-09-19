@@ -15,7 +15,7 @@ Berberim Club, onaylı üyelik ve kontrollü seans erişimiyle çalışan web ta
 
 ## Mevcut durum
 
-Bu depo şu anda bağımlılıksız çalışan bir web prototipi içerir. `index.html` dosyası doğrudan tarayıcıda açılabilir.
+Bu depo şu anda web prototipi ve ilk Node.js + Express + SQLite backend iskeletini içerir.
 
 Canlı ürün için sonraki adımlar:
 
@@ -30,8 +30,33 @@ Canlı ürün için sonraki adımlar:
 
 ## Yerel önizleme
 
-Dosyayı doğrudan açabilirsiniz:
+Frontend dosyasını doğrudan açabilirsiniz:
 
 ```text
 /Users/cagriza/Downloads/REIN-Sertifika 5/berberim/index.html
 ```
+
+Backend API'yi yerelde başlatmak için:
+
+```bash
+npm install
+npm run db:init
+npm start
+```
+
+Varsayılan API adresi:
+
+```text
+http://localhost:3000/api/health
+```
+
+İlk eklenen API uçları:
+
+- `GET /api/health`
+- `GET /api/roles`
+- `GET /api/services`
+- `GET /api/stock`
+- `POST /api/stock`
+- `POST /api/stock/:id/movements`
+- `GET /api/stock-movements`
+- `GET /api/cash/summary`

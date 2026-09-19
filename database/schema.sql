@@ -58,7 +58,7 @@ create table if not exists service_categories (
 create table if not exists services (
   id integer primary key autoincrement,
   category_id integer references service_categories(id),
-  name text not null,
+  name text not null unique,
   default_price real not null default 0,
   duration_minutes integer not null default 30,
   requires_master integer not null default 1,

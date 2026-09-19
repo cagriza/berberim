@@ -1,0 +1,15 @@
+{
+  "name": "berberim-club",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server/index.js",
+    "start": "node server/index.js",
+    "db:init": "node scripts/init-db.js",
+    "check": "node --check server/index.js && node --check server/db.js && node --check server/routes.js && node --check scripts/init-db.js && node --check app.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
