@@ -31,6 +31,7 @@ const queue = document.querySelector("#applicationQueue");
 const toast = document.querySelector("#toast");
 const slotFeedback = document.querySelector("#slotFeedback");
 const openSlotButton = document.querySelector("#openSlotButton");
+const visitFlow = document.querySelector("#visitFlow");
 const copyInviteButton = document.querySelector("#copyInviteButton");
 const demoLoginForm = document.querySelector("#demoLoginForm");
 const demoUserSelect = document.querySelector("#demoUserSelect");
@@ -84,6 +85,7 @@ const storageKeys = {
   staff: "berberimClub.staff.v2",
   staffFinance: "berberimClub.staffFinance.v1",
   cashDetails: "berberimClub.cashDetails.v1",
+  sessions: "berberimClub.sessions.v1",
   specialPrices: "berberimClub.specialPrices.v1",
   stock: "berberimClub.stock.v1",
   stockMovements: "berberimClub.stockMovements.v1",
@@ -192,6 +194,12 @@ const seedStockMovements = [
   { name: "Tek kullanımlık havlu", type: "out", quantity: 18, note: "Bugünkü kullanım" },
   { name: "Manikür seti", type: "out", quantity: 4, note: "Manikür seansları" },
   { name: "Pedikür hijyen kiti", type: "in", quantity: 6, note: "Yeni alım" },
+];
+
+const seedSessions = [
+  { startsAt: "2026-09-25 19:30:00", customerName: "Çağrı Z.", serviceSummary: "Saç + manikür + pedikür" },
+  { startsAt: "2026-09-25 20:15:00", customerName: "Mert A.", serviceSummary: "Saç + sakal" },
+  { startsAt: "2026-09-25 21:00:00", customerName: "Private blok", serviceSummary: "Korunan saat" },
 ];
 
 const seedCashDetails = {
@@ -783,6 +791,46 @@ async function refreshCashDetailsFromApi({ silent = false } = {}) {
   }
 }
 
+function normalizeSession(session) {
+  return {
+    id: session.id,
+    startsAt: session.startsAt,
+    customerName: session.customerName || "Üye",
+    serviceSummary: session.serviceSummary || "Bakım seansı",
+    status: session.status || "open",
+  };
+}
+
+function renderSessions(sessions) {
+  visitFlow.innerHTML = "";
+
+  sessions.slice(0, 5).forEach((session) => {
+    const item = document.createElement("div");
+    item.innerHTML = `
+      <span>${escapeHtml(formatTime(session.startsAt))}</span>
+      <strong>${escapeHtml(session.customerName)}</strong>
+      <small>${escapeHtml(session.serviceSummary)}</small>
+    `;
+    visitFlow.append(item);
+  });
+}
+
+async function refreshSessionsFromApi({ silent = false } = {}) {
+  try {
+    const sessions = (await apiRequest("/api/sessions/upcoming")).map(normalizeSession);
+    const visibleSessions = sessions.length ? sessions : [...seedSessions];
+    saveJson(storageKeys.sessions, visibleSessions);
+    renderSessions(visibleSessions);
+    if (!silent) showToast("Gün akışı veritabanından güncellendi.");
+    return true;
+  } catch {
+    const fallbackSessions = readJson(storageKeys.sessions) || [...seedSessions];
+    renderSessions(fallbackSessions);
+    if (!silent) showToast("API kapalı olduğu için demo gün akışı kullanılıyor.");
+    return false;
+  }
+}
+
 function calculateSplit(masterType, amount) {
   if (masterType === "owner") {
     return {
@@ -992,7 +1040,31 @@ queue.addEventListener("click", async (event) => {
   renderQueue();
 });
 
-openSlotButton.addEventListener("click", () => {
+openSlotButton.addEventListener("click", async () => {
+  try {
+    const session = normalizeSession(
+      await apiRequest("/api/sessions/open-demo", {
+        method: "POST",
+        body: JSON.stringify({ startsAt: "2026-09-25 19:30:00" }),
+      })
+    );
+    await refreshSessionsFromApi({ silent: true });
+    slotFeedback.textContent = `${session.customerName} için ${session.serviceSummary} seansı veritabanına açıldı.`;
+    showToast("Kontrollü seans veritabanına açıldı.");
+    return;
+  } catch {
+    showToast("API kapalı. Seans demo gün akışına ekleniyor.");
+  }
+
+  const sessions = readJson(storageKeys.sessions) || [...seedSessions];
+  sessions.unshift({
+    startsAt: "2026-09-25 19:30:00",
+    customerName: "Çağrı Z.",
+    serviceSummary: "Saç + manikür + pedikür",
+    status: "open",
+  });
+  saveJson(storageKeys.sessions, sessions);
+  renderSessions(sessions);
   slotFeedback.textContent =
     "Cuma 19:30 saç, manikür ve pedikür seansı Atelier üyelerine açıldı. Sistem 115 dk ve 2 uzman ihtiyacıyla planladı.";
   showToast("Kontrollü seans erişimi güncellendi.");
@@ -1441,5 +1513,9 @@ refreshStockFromApi({ silent: true });
 const savedCashDetails = readJson(storageKeys.cashDetails) || seedCashDetails;
 renderCashDetails(savedCashDetails);
 refreshCashDetailsFromApi({ silent: true });
+
+const savedSessions = readJson(storageKeys.sessions) || [...seedSessions];
+renderSessions(savedSessions);
+refreshSessionsFromApi({ silent: true });
 
 renderSplitPreview();

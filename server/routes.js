@@ -82,6 +82,28 @@ function ensureService(db, serviceName, amount = 0) {
   return get(db, "select * from services where id = ?", [result.lastInsertRowid]);
 }
 
+function ensureCustomerByPhone(db, fullName, phone, options = {}) {
+  const name = String(fullName || "").trim();
+  const normalizedPhone = String(phone || slugPhoneFromName(name || "musteri")).trim();
+  const existing = get(db, "select * from customer_profiles where phone = ? order by id desc limit 1", [normalizedPhone]);
+  if (existing) return existing;
+
+  const result = run(
+    db,
+    `insert into customer_profiles (full_name, phone, membership_level, membership_status, invite_code, private_notes)
+     values (?, ?, ?, ?, ?, ?)`,
+    [
+      name,
+      normalizedPhone,
+      options.membershipLevel || "atelier",
+      options.membershipStatus || "active",
+      options.inviteCode || null,
+      options.privateNotes || null,
+    ]
+  );
+  return get(db, "select * from customer_profiles where id = ?", [result.lastInsertRowid]);
+}
+
 const priceServiceMap = {
   haircut: "İmza kesim",
   beard: "Sakal tasarım",
@@ -421,6 +443,72 @@ export function registerRoutes(app, db) {
       [id]
     );
     res.json(customerApplicationFromRow(application));
+  });
+
+  app.get("/api/sessions/upcoming", (req, res) => {
+    res.json(
+      all(
+        db,
+        `select
+          service_sessions.id,
+          service_sessions.starts_at as startsAt,
+          service_sessions.status,
+          service_sessions.total_amount as totalAmount,
+          customer_profiles.full_name as customerName,
+          coalesce(group_concat(services.name, ' + '), service_sessions.note) as serviceSummary
+        from service_sessions
+        join customer_profiles on customer_profiles.id = service_sessions.customer_id
+        left join service_session_items on service_session_items.session_id = service_sessions.id
+        left join services on services.id = service_session_items.service_id
+        where service_sessions.status in ('planned', 'open')
+        group by service_sessions.id
+        order by service_sessions.starts_at is null, service_sessions.starts_at, service_sessions.id
+        limit 12`
+      )
+    );
+  });
+
+  app.post("/api/sessions/open-demo", (req, res) => {
+    const customer = ensureCustomerByPhone(db, "Çağrı Z.", "demo-cagri-z", {
+      privateNotes: JSON.stringify({ intent: "Saç + manikür + pedikür", note: "Private kombin için uygun." }),
+    });
+    const staffContext = ensureDemoStaff(db, "employee");
+    const services = ["İmza kesim", "Manikür", "Pedikür"].map((name) => ensureService(db, name));
+    const totalAmount = services.reduce((sum, service) => sum + Number(service.default_price || 0), 0);
+    const startsAt = String(req.body?.startsAt || "2026-09-25 19:30:00");
+
+    db.exec("begin");
+    try {
+      const sessionResult = run(
+        db,
+        `insert into service_sessions (customer_id, primary_staff_id, status, starts_at, total_amount, note)
+         values (?, ?, ?, ?, ?, ?)`,
+        [customer.id, staffContext.staff.id, "open", startsAt, totalAmount, "Demo kontrollü seans"]
+      );
+      const sessionId = sessionResult.lastInsertRowid;
+      services.forEach((service) => {
+        const price = Number(service.default_price || 0);
+        run(
+          db,
+          `insert into service_session_items (session_id, service_id, quantity, unit_price, line_total)
+           values (?, ?, ?, ?, ?)`,
+          [sessionId, service.id, 1, price, price]
+        );
+      });
+      db.exec("commit");
+
+      res.status(201).json({
+        id: sessionId,
+        startsAt,
+        status: "open",
+        customerName: customer.full_name,
+        serviceSummary: "İmza kesim + Manikür + Pedikür",
+        totalAmount,
+      });
+    } catch (error) {
+      db.exec("rollback");
+      throw error;
+    }
   });
 
   app.get("/api/staff", (req, res) => {

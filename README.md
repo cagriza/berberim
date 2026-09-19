@@ -59,6 +59,8 @@ http://localhost:3000/api/health
 - `GET /api/applications`
 - `POST /api/applications`
 - `PATCH /api/applications/:id/status`
+- `GET /api/sessions/upcoming`
+- `POST /api/sessions/open-demo`
 - `GET /api/staff`
 - `POST /api/staff`
 - `DELETE /api/staff/:id`
