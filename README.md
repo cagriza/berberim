@@ -52,6 +52,7 @@ http://localhost:3000/api/health
 
 - `GET /api/health`
 - `GET /api/roles`
+- `GET /api/demo-users`
 - `GET /api/services`
 - `GET /api/staff`
 - `POST /api/staff`

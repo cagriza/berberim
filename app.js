@@ -26,6 +26,11 @@ const toast = document.querySelector("#toast");
 const slotFeedback = document.querySelector("#slotFeedback");
 const openSlotButton = document.querySelector("#openSlotButton");
 const copyInviteButton = document.querySelector("#copyInviteButton");
+const demoLoginForm = document.querySelector("#demoLoginForm");
+const demoUserSelect = document.querySelector("#demoUserSelect");
+const currentAccessRole = document.querySelector("#currentAccessRole");
+const currentAccessName = document.querySelector("#currentAccessName");
+const currentAccessScope = document.querySelector("#currentAccessScope");
 const demoRoleButtons = document.querySelectorAll("[data-demo-role]");
 const demoScopedElements = document.querySelectorAll("[data-demo-scope]");
 const ownerMetricsForm = document.querySelector("#ownerMetricsForm");
@@ -58,6 +63,8 @@ const priceTargets = document.querySelectorAll("[data-price-target]");
 const storageKeys = {
   metrics: "berberimClub.metrics.v2",
   prices: "berberimClub.prices",
+  demoUsers: "berberimClub.demoUsers.v1",
+  activeDemoUser: "berberimClub.activeDemoUser.v1",
   staff: "berberimClub.staff.v2",
   staffFinance: "berberimClub.staffFinance.v1",
   specialPrices: "berberimClub.specialPrices.v1",
@@ -74,6 +81,49 @@ const seedStaff = [
   { name: "Yardımcı 1", role: "Destek", shift: "10:00-18:00", status: "Aktif" },
   { name: "Yardımcı 2", role: "Destek", shift: "11:00-19:00", status: "Aktif" },
   { name: "Yardımcı 3", role: "Destek", shift: "13:00-21:00", status: "Aktif" },
+];
+
+const seedDemoUsers = [
+  {
+    id: "all",
+    name: "Sunum görünümü",
+    roleName: "Tüm demo",
+    roleCode: "all",
+    demoRole: "all",
+    accessNote: "Bütün ekranlar karşılaştırmalı olarak açık.",
+  },
+  {
+    id: "owner-demo",
+    name: "İsmail Gül",
+    roleName: "Patron",
+    roleCode: "owner",
+    demoRole: "owner",
+    accessNote: "Tüm kasa, personel hesabı ve mahrem müşteri bilgileri açık.",
+  },
+  {
+    id: "admin-demo",
+    name: "Salon Admini",
+    roleName: "Admin",
+    roleCode: "admin",
+    demoRole: "admin",
+    accessNote: "Operasyon, üyelik ve ayar ekranları açık; patron net kasası kapalı.",
+  },
+  {
+    id: "master-demo",
+    name: "Faruk Usta",
+    roleName: "Usta",
+    roleCode: "master",
+    demoRole: "master",
+    accessNote: "Kendi seansı, ödeme kapatma ve kendi hak ediş özeti açık.",
+  },
+  {
+    id: "customer-demo",
+    name: "Mehmet A.",
+    roleName: "Müşteri",
+    roleCode: "customer",
+    demoRole: "customer",
+    accessNote: "Sadece kendi üyelik, bakım ve seans bilgileri açık.",
+  },
 ];
 
 const seedStaffFinance = [
@@ -359,6 +409,61 @@ async function refreshStaffFinanceFromApi({ silent = false } = {}) {
   }
 }
 
+function normalizeDemoUser(user) {
+  return {
+    id: String(user.id),
+    name: user.name,
+    roleName: user.roleName,
+    roleCode: user.roleCode,
+    demoRole: user.demoRole || "customer",
+    accessNote: user.accessNote || "Rolüne uygun ekranlar açık.",
+  };
+}
+
+function renderDemoUsers(users) {
+  demoUserSelect.innerHTML = "";
+
+  users.forEach((user) => {
+    const option = document.createElement("option");
+    option.value = user.id;
+    option.textContent = `${user.name} · ${user.roleName}`;
+    demoUserSelect.append(option);
+  });
+}
+
+function updateAccessCard(user) {
+  currentAccessRole.textContent = user.roleName;
+  currentAccessName.textContent = user.name;
+  currentAccessScope.textContent = user.accessNote;
+}
+
+function applyDemoUser(user, shouldNotify = true) {
+  if (!user) return;
+
+  demoUserSelect.value = user.id;
+  updateAccessCard(user);
+  saveJson(storageKeys.activeDemoUser, user);
+  applyDemoRole(user.demoRole, shouldNotify);
+}
+
+async function refreshDemoUsersFromApi({ silent = false } = {}) {
+  try {
+    const users = [
+      seedDemoUsers[0],
+      ...(await apiRequest("/api/demo-users")).map(normalizeDemoUser),
+    ];
+    saveJson(storageKeys.demoUsers, users);
+    renderDemoUsers(users);
+    if (!silent) showToast("Demo kullanıcıları veritabanından güncellendi.");
+    return users;
+  } catch {
+    const fallbackUsers = readJson(storageKeys.demoUsers) || [...seedDemoUsers];
+    renderDemoUsers(fallbackUsers);
+    if (!silent) showToast("API kapalı olduğu için demo kullanıcı listesi kullanılıyor.");
+    return fallbackUsers;
+  }
+}
+
 function applyDemoRole(role, shouldNotify = true) {
   document.body.dataset.activeDemoRole = role;
 
@@ -384,6 +489,14 @@ function applyDemoRole(role, shouldNotify = true) {
     };
     showToast(labels[role] || labels.all);
   }
+}
+
+function syncDemoUserWithRole(role) {
+  const users = readJson(storageKeys.demoUsers) || [...seedDemoUsers];
+  const user = users.find((candidate) => candidate.demoRole === role) || seedDemoUsers[0];
+  updateAccessCard(user);
+  demoUserSelect.value = user.id;
+  saveJson(storageKeys.activeDemoUser, user);
 }
 
 function applyMetrics(metrics, shouldFillForm = false) {
@@ -666,9 +779,19 @@ copyInviteButton.addEventListener("click", async () => {
 
 demoRoleButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    applyDemoRole(button.dataset.demoRole || "all");
+    const role = button.dataset.demoRole || "all";
+    applyDemoRole(role);
+    syncDemoUserWithRole(role);
     document.querySelector("#roles")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
+});
+
+demoLoginForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const users = readJson(storageKeys.demoUsers) || [...seedDemoUsers];
+  const selectedUser = users.find((user) => user.id === demoUserSelect.value) || seedDemoUsers[0];
+  applyDemoUser(selectedUser);
+  document.querySelector("#roles")?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 ownerMetricsForm.addEventListener("submit", (event) => {
@@ -1020,6 +1143,16 @@ const savedStaffFinance = readJson(storageKeys.staffFinance) || [...seedStaffFin
 renderStaffFinance(savedStaffFinance);
 refreshStaffFinanceFromApi({ silent: true });
 
+const savedDemoUsers = readJson(storageKeys.demoUsers) || [...seedDemoUsers];
+renderDemoUsers(savedDemoUsers);
+const savedDemoUser = readJson(storageKeys.activeDemoUser) || savedDemoUsers[0];
+applyDemoUser(savedDemoUser, false);
+refreshDemoUsersFromApi({ silent: true }).then((users) => {
+  const activeUser = readJson(storageKeys.activeDemoUser) || users[0];
+  const matchingUser = users.find((user) => user.id === activeUser.id) || activeUser;
+  applyDemoUser(matchingUser, false);
+});
+
 const savedSpecialPrices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
 renderSpecialPrices(savedSpecialPrices);
 refreshSpecialPricesFromApi({ silent: true });
@@ -1031,6 +1164,5 @@ const savedStockMovements = readJson(storageKeys.stockMovements) || [...seedStoc
 renderStockMovements(savedStockMovements);
 refreshStockFromApi({ silent: true });
 
-applyDemoRole("all", false);
 renderSplitPreview();
 renderQueue();

@@ -338,6 +338,88 @@ h1 {
   display: none !important;
 }
 
+.access-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.85fr) minmax(220px, 0.65fr);
+  gap: 18px;
+  align-items: end;
+  border-bottom: 1px solid var(--line);
+  background:
+    linear-gradient(135deg, rgba(201, 161, 93, 0.12), rgba(127, 36, 38, 0.08)),
+    #171311;
+  padding: clamp(24px, 4vw, 42px) clamp(20px, 5vw, 70px);
+}
+
+.access-preview-copy {
+  max-width: 700px;
+}
+
+.access-preview-copy h2,
+.access-preview-copy p {
+  margin: 0;
+}
+
+.access-preview-copy h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.55rem, 2.6vw, 2.65rem);
+  line-height: 1.08;
+}
+
+.access-preview-copy p:last-child {
+  max-width: 620px;
+  margin-top: 12px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.login-preview-form,
+.active-access-card {
+  border: 1px solid rgba(246, 239, 229, 0.14);
+  border-radius: 8px;
+  background: rgba(246, 239, 229, 0.06);
+  padding: 16px;
+}
+
+.login-preview-form {
+  display: grid;
+  gap: 12px;
+}
+
+.login-preview-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.login-preview-form select {
+  min-height: 46px;
+}
+
+.active-access-card span,
+.active-access-card strong,
+.active-access-card small {
+  display: block;
+}
+
+.active-access-card span {
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.active-access-card strong {
+  margin-top: 8px;
+  font-size: 1.22rem;
+}
+
+.active-access-card small {
+  margin-top: 8px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .control-band span {
   color: var(--accent);
   font-weight: 800;
@@ -1683,6 +1765,7 @@ textarea:focus {
 
   .control-band,
   .demo-switcher,
+  .access-preview,
   .membership-grid,
   .ops-layout,
   .ops-insights,

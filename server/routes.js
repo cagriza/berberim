@@ -93,6 +93,35 @@ function staffTypeLabel(type) {
   return labels[type] || type || "Usta";
 }
 
+function demoRoleFromRoleCode(roleCode) {
+  if (roleCode === "owner" || roleCode === "admin" || roleCode === "customer") return roleCode;
+  return "master";
+}
+
+function roleNameFromRoleCode(roleCode, fallback) {
+  const labels = {
+    owner: "Patron",
+    admin: "Admin",
+    master: "Usta",
+    care_specialist: "Bakım uzmanı",
+    assistant: "Yardımcı personel",
+    customer: "Müşteri",
+  };
+  return labels[roleCode] || fallback || "Kullanıcı";
+}
+
+function accessNoteFromRoleCode(roleCode) {
+  const notes = {
+    owner: "Tüm kasa, personel hesabı ve mahrem müşteri bilgileri açık.",
+    admin: "Operasyon, üyelik ve ayar ekranları açık; patron net kasası kapalı.",
+    master: "Kendi seansı, ödeme kapatma ve kendi hak ediş özeti açık.",
+    care_specialist: "El-ayak bakım seansları, ödeme kapatma ve kendi hak ediş özeti açık.",
+    assistant: "Destek ve operasyon akışı açık; maaş, borç ve patron kasası kapalı.",
+    customer: "Sadece kendi üyelik, bakım ve seans bilgileri açık.",
+  };
+  return notes[roleCode] || "Rolüne uygun ekranlar açık.";
+}
+
 export function registerRoutes(app, db) {
   app.get("/api/health", (req, res) => {
     const tableCount = get(db, "select count(*) as count from sqlite_master where type = 'table'");
@@ -101,6 +130,59 @@ export function registerRoutes(app, db) {
 
   app.get("/api/roles", (req, res) => {
     res.json(all(db, "select id, code, name, description from roles order by id"));
+  });
+
+  app.get("/api/demo-users", (req, res) => {
+    const users = all(
+      db,
+      `select
+        users.id,
+        users.full_name as name,
+        roles.code as roleCode,
+        roles.name as roleName
+      from users
+      join roles on roles.id = users.role_id
+      where users.status = 'active'
+      order by
+        case roles.code
+          when 'owner' then 1
+          when 'admin' then 2
+          when 'master' then 3
+          when 'care_specialist' then 4
+          when 'assistant' then 5
+          else 6
+        end,
+        users.full_name`
+    ).map((user) => ({
+      ...user,
+      roleName: roleNameFromRoleCode(user.roleCode, user.roleName),
+      demoRole: demoRoleFromRoleCode(user.roleCode),
+      accessNote: accessNoteFromRoleCode(user.roleCode),
+    }));
+
+    if (!users.some((user) => user.roleCode === "admin")) {
+      users.splice(1, 0, {
+        id: "admin-demo",
+        name: "Salon Admini",
+        roleCode: "admin",
+        roleName: "Admin",
+        demoRole: "admin",
+        accessNote: "Operasyon, üyelik ve ayar ekranları açık; patron net kasası kapalı.",
+      });
+    }
+
+    if (!users.some((user) => user.roleCode === "customer")) {
+      users.push({
+        id: "customer-demo",
+        name: "Mehmet A.",
+        roleCode: "customer",
+        roleName: "Müşteri",
+        demoRole: "customer",
+        accessNote: "Sadece kendi üyelik, bakım ve seans bilgileri açık.",
+      });
+    }
+
+    res.json(users);
   });
 
   app.get("/api/services", (req, res) => {

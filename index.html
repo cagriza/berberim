@@ -96,6 +96,29 @@
           </div>
         </section>
 
+        <section class="access-preview" aria-label="Rol bazlı giriş demosu">
+          <div class="access-preview-copy">
+            <p class="eyebrow">Giriş demosu</p>
+            <h2>Kullanıcı seç, ekran yetkileri ona göre açılsın.</h2>
+            <p>
+              Patron tüm sistemi görür; usta kendi işi ve tahsilatıyla çalışır; müşteri yalnızca kendi üyelik alanına
+              erişir.
+            </p>
+          </div>
+          <form class="login-preview-form" id="demoLoginForm">
+            <label>
+              Demo kullanıcı
+              <select name="demoUser" id="demoUserSelect"></select>
+            </label>
+            <button class="button button-primary" type="submit">Giriş görünümünü aç</button>
+          </form>
+          <div class="active-access-card" aria-live="polite">
+            <span id="currentAccessRole">Tüm demo</span>
+            <strong id="currentAccessName">Sunum görünümü</strong>
+            <small id="currentAccessScope">Bütün ekranlar karşılaştırmalı olarak açık.</small>
+          </div>
+        </section>
+
         <section class="workspace" id="membership" aria-label="Üyelik panosu" data-demo-scope="customer owner admin">
           <div class="section-heading">
             <p class="eyebrow">Seçici erişim</p>
