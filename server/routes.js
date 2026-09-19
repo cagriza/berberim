@@ -75,6 +75,24 @@ function ensureDemoStaff(db, masterType) {
   return { user, staff };
 }
 
+function roleCodeFromStaffRole(role) {
+  const normalized = String(role || "").toLocaleLowerCase("tr-TR");
+  if (normalized.includes("bakım")) return "care_specialist";
+  if (normalized.includes("destek") || normalized.includes("yardım")) return "assistant";
+  if (normalized.includes("patron")) return "owner";
+  return "master";
+}
+
+function staffTypeLabel(type) {
+  const labels = {
+    owner: "Patron + usta",
+    master: "Usta",
+    care_specialist: "Bakım uzmanı",
+    assistant: "Destek",
+  };
+  return labels[type] || type || "Usta";
+}
+
 export function registerRoutes(app, db) {
   app.get("/api/health", (req, res) => {
     const tableCount = get(db, "select count(*) as count from sqlite_master where type = 'table'");
@@ -103,6 +121,98 @@ export function registerRoutes(app, db) {
         order by services.id`
       )
     );
+  });
+
+  app.get("/api/staff", (req, res) => {
+    res.json(
+      all(
+        db,
+        `select
+          staff_profiles.id,
+          users.id as userId,
+          users.full_name as name,
+          staff_profiles.staff_type as staffType,
+          staff_profiles.shift_label as shift,
+          staff_profiles.work_status as status,
+          staff_profiles.salary_amount as salaryAmount,
+          staff_profiles.commission_rate as commissionRate,
+          staff_profiles.can_close_payment as canClosePayment,
+          staff_profiles.can_view_private_finance as canViewPrivateFinance
+        from staff_profiles
+        join users on users.id = staff_profiles.user_id
+        where users.status = 'active'
+        order by staff_profiles.id`
+      ).map((staff) => ({
+        ...staff,
+        role: staffTypeLabel(staff.staffType),
+      }))
+    );
+  });
+
+  app.post("/api/staff", (req, res) => {
+    const name = String(req.body.name || "").trim();
+    const role = String(req.body.role || "Usta").trim();
+    const shift = String(req.body.shift || "").trim();
+    const status = String(req.body.status || "Aktif").trim();
+    const staffType = roleCodeFromStaffRole(role);
+    const roleRow = get(db, "select * from roles where code = ? limit 1", [staffType === "care_specialist" ? "care_specialist" : staffType]);
+
+    if (!name || !shift) {
+      res.status(400).json({ error: "Çalışan adı ve vardiya zorunlu." });
+      return;
+    }
+
+    const email = `${slugPhoneFromName(name)}-${Date.now()}@berberim.local`;
+    db.exec("begin");
+    try {
+      const userResult = run(db, "insert into users (role_id, full_name, email, status) values (?, ?, ?, ?)", [
+        roleRow?.id || 3,
+        name,
+        email,
+        "active",
+      ]);
+      const staffResult = run(
+        db,
+        `insert into staff_profiles
+          (user_id, staff_type, shift_label, work_status, commission_rate, can_close_payment, can_view_private_finance)
+         values (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          userResult.lastInsertRowid,
+          staffType,
+          shift,
+          status,
+          staffType === "care_specialist" ? 40 : staffType === "assistant" ? 0 : 50,
+          staffType === "assistant" ? 0 : 1,
+          staffType === "owner" ? 1 : 0,
+        ]
+      );
+      db.exec("commit");
+
+      res.status(201).json({
+        id: staffResult.lastInsertRowid,
+        userId: userResult.lastInsertRowid,
+        name,
+        role: staffTypeLabel(staffType),
+        staffType,
+        shift,
+        status,
+      });
+    } catch (error) {
+      db.exec("rollback");
+      throw error;
+    }
+  });
+
+  app.delete("/api/staff/:id", (req, res) => {
+    const staff = get(db, "select * from staff_profiles where id = ?", [Number(req.params.id)]);
+    if (!staff) {
+      res.status(404).json({ error: "Çalışan bulunamadı." });
+      return;
+    }
+
+    run(db, "update users set status = 'inactive', updated_at = datetime('now') where id = ?", [staff.user_id]);
+    run(db, "update staff_profiles set work_status = 'İzinli', updated_at = datetime('now') where id = ?", [staff.id]);
+    res.json({ ok: true, id: staff.id });
   });
 
   app.get("/api/special-prices", (req, res) => {

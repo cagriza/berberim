@@ -31,3 +31,30 @@ insert or ignore into stock_items (name, quantity, unit, minimum_quantity, statu
   ('Manikur seti', 9, 'paket', 8, 'low'),
   ('Pedikur hijyen kiti', 5, 'paket', 6, 'critical'),
   ('Sakal bakim yagi', 18, 'sise', 8, 'safe');
+
+insert or ignore into users (role_id, full_name, email, status) values
+  ((select id from roles where code = 'owner'), 'İsmail Gül', 'ismail.gul@berberim.local', 'active'),
+  ((select id from roles where code = 'master'), 'Faruk Usta', 'faruk.usta@berberim.local', 'active'),
+  ((select id from roles where code = 'master'), 'Ali Usta', 'ali.usta@berberim.local', 'active'),
+  ((select id from roles where code = 'care_specialist'), 'Elif Zeren', 'elif.zeren@berberim.local', 'active'),
+  ((select id from roles where code = 'assistant'), 'Yardımcı 1', 'yardimci1@berberim.local', 'active'),
+  ((select id from roles where code = 'assistant'), 'Yardımcı 2', 'yardimci2@berberim.local', 'active'),
+  ((select id from roles where code = 'assistant'), 'Yardımcı 3', 'yardimci3@berberim.local', 'active');
+
+insert or ignore into staff_profiles (
+  user_id,
+  staff_type,
+  shift_label,
+  work_status,
+  salary_amount,
+  commission_rate,
+  can_close_payment,
+  can_view_private_finance
+) values
+  ((select id from users where email = 'ismail.gul@berberim.local'), 'owner', '10:00-21:00', 'Aktif', 0, 100, 1, 1),
+  ((select id from users where email = 'faruk.usta@berberim.local'), 'master', '10:00-19:00', 'Aktif', 38000, 50, 1, 0),
+  ((select id from users where email = 'ali.usta@berberim.local'), 'master', '12:00-21:00', 'Aktif', 35000, 50, 1, 0),
+  ((select id from users where email = 'elif.zeren@berberim.local'), 'care_specialist', '11:00-20:00', 'Aktif', 32000, 40, 1, 0),
+  ((select id from users where email = 'yardimci1@berberim.local'), 'assistant', '10:00-18:00', 'Aktif', 24000, 0, 0, 0),
+  ((select id from users where email = 'yardimci2@berberim.local'), 'assistant', '11:00-19:00', 'Aktif', 24000, 0, 0, 0),
+  ((select id from users where email = 'yardimci3@berberim.local'), 'assistant', '13:00-21:00', 'Aktif', 24000, 0, 0, 0);

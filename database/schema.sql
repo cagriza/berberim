@@ -28,6 +28,7 @@ create table if not exists staff_profiles (
   user_id integer not null unique references users(id),
   staff_type text not null,
   shift_label text,
+  work_status text not null default 'Aktif',
   salary_amount real not null default 0,
   commission_rate real,
   can_close_payment integer not null default 0,

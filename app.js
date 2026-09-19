@@ -236,6 +236,31 @@ async function refreshSpecialPricesFromApi({ silent = false } = {}) {
   }
 }
 
+function normalizeStaff(person) {
+  return {
+    id: person.id,
+    name: person.name,
+    role: person.role,
+    shift: person.shift,
+    status: person.status || "Aktif",
+  };
+}
+
+async function refreshStaffFromApi({ silent = false } = {}) {
+  try {
+    const staff = (await apiRequest("/api/staff")).map(normalizeStaff);
+    saveJson(storageKeys.staff, staff);
+    renderEditableStaff(staff);
+    if (!silent) showToast("Çalışan listesi veritabanından güncellendi.");
+    return true;
+  } catch {
+    const fallbackStaff = readJson(storageKeys.staff) || [...seedStaff];
+    renderEditableStaff(fallbackStaff);
+    if (!silent) showToast("API kapalı olduğu için demo çalışan hafızası kullanılıyor.");
+    return false;
+  }
+}
+
 function applyDemoRole(role, shouldNotify = true) {
   document.body.dataset.activeDemoRole = role;
 
@@ -328,7 +353,7 @@ function renderEditableStaff(staff) {
         <strong>${escapeHtml(person.name)}</strong>
         <span>${escapeHtml(person.role)} · ${escapeHtml(person.shift)} · ${escapeHtml(person.status)}</span>
       </div>
-      <button class="icon-button" type="button" data-remove-staff="${index}" title="Çalışanı kaldır">×</button>
+      <button class="icon-button" type="button" data-remove-staff="${index}" data-staff-id="${person.id || ""}" title="Çalışanı kaldır">×</button>
     `;
     editableStaffList.append(item);
   });
@@ -615,16 +640,31 @@ specialPriceForm.addEventListener("submit", async (event) => {
   showToast("Müşteriye özel fiyat kaydedildi.");
 });
 
-ownerStaffForm.addEventListener("submit", (event) => {
+ownerStaffForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = new FormData(ownerStaffForm);
-  const staff = readJson(storageKeys.staff) || [...seedStaff];
-  staff.push({
+  const person = {
     name: String(data.get("staffName") || "").trim(),
     role: String(data.get("staffRole") || "Usta"),
     shift: String(data.get("staffShift") || "").trim(),
     status: String(data.get("staffStatus") || "Aktif"),
-  });
+  };
+
+  try {
+    await apiRequest("/api/staff", {
+      method: "POST",
+      body: JSON.stringify(person),
+    });
+    await refreshStaffFromApi({ silent: true });
+    ownerStaffForm.reset();
+    showToast("Çalışan veritabanına eklendi.");
+    return;
+  } catch {
+    showToast("API kapalı. Çalışan demo hafızasına ekleniyor.");
+  }
+
+  const staff = readJson(storageKeys.staff) || [...seedStaff];
+  staff.push(person);
 
   saveJson(storageKeys.staff, staff);
   renderEditableStaff(staff);
@@ -670,12 +710,25 @@ checkoutForm.addEventListener("submit", async (event) => {
   showToast(`${formatCurrency(amount)} ${paymentType.toLocaleLowerCase("tr-TR")} ile kasaya geçti.${priceNote}`);
 });
 
-editableStaffList.addEventListener("click", (event) => {
+editableStaffList.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-remove-staff]");
   if (!button) return;
 
   const index = Number(button.dataset.removeStaff);
+  const staffId = Number(button.dataset.staffId || 0);
   const staff = readJson(storageKeys.staff) || [...seedStaff];
+
+  if (staffId) {
+    try {
+      await apiRequest(`/api/staff/${staffId}`, { method: "DELETE" });
+      await refreshStaffFromApi({ silent: true });
+      showToast("Çalışan veritabanında pasife alındı.");
+      return;
+    } catch {
+      showToast("API kapalı. Çalışan demo hafızasından kaldırılıyor.");
+    }
+  }
+
   staff.splice(index, 1);
   saveJson(storageKeys.staff, staff);
   renderEditableStaff(staff);
@@ -821,6 +874,7 @@ if (savedPrices) applyPrices(savedPrices, true);
 
 const savedStaff = readJson(storageKeys.staff) || [...seedStaff];
 renderEditableStaff(savedStaff);
+refreshStaffFromApi({ silent: true });
 
 const savedSpecialPrices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
 renderSpecialPrices(savedSpecialPrices);

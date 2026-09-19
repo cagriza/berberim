@@ -22,6 +22,11 @@ export function openDatabase(dbPath = process.env.BERBERIM_DB_PATH || defaultDbP
 
 export function initializeDatabase(db) {
   db.exec(readFileSync(schemaPath, "utf8"));
+  try {
+    db.exec("alter table staff_profiles add column work_status text not null default 'Aktif';");
+  } catch {
+    // Column already exists on databases initialized with the current schema.
+  }
   db.exec(readFileSync(seedPath, "utf8"));
 }
 

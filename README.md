@@ -55,6 +55,9 @@ http://localhost:3000/api/health
 - `GET /api/health`
 - `GET /api/roles`
 - `GET /api/services`
+- `GET /api/staff`
+- `POST /api/staff`
+- `DELETE /api/staff/:id`
 - `GET /api/special-prices`
 - `POST /api/special-prices`
 - `DELETE /api/special-prices/:id`
@@ -67,3 +70,4 @@ http://localhost:3000/api/health
 - `GET /api/cash/summary`
 
 Frontend stok bölümü API açıksa SQLite veritabanını kullanır. API kapalıysa demo akışının bozulmaması için tarayıcı hafızasına düşer.
+Frontend personel bölümü de API açıksa SQLite veritabanını kullanır. API kapalıysa demo çalışan hafızasıyla çalışmayı sürdürür.
