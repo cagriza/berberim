@@ -749,6 +749,24 @@ export function registerRoutes(app, db) {
     });
   });
 
+  app.get("/api/capacity/today", (req, res) => {
+    const maxSessions = 8;
+    const reservedBlocks = 2;
+    const used = get(
+      db,
+      "select count(*) as count from service_sessions where status in ('planned', 'open', 'in_progress', 'completed')"
+    );
+    const usedSessions = Number(used.count || 0);
+
+    res.json({
+      usedSessions,
+      maxSessions,
+      reservedBlocks,
+      percent: Math.min(Math.round((usedSessions / maxSessions) * 100), 100),
+      note: `Private üyeler için ${reservedBlocks} kapalı saat korunuyor.`,
+    });
+  });
+
   app.get("/api/staff", (req, res) => {
     res.json(
       all(

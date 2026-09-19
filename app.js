@@ -31,6 +31,9 @@ const queue = document.querySelector("#applicationQueue");
 const toast = document.querySelector("#toast");
 const slotFeedback = document.querySelector("#slotFeedback");
 const openSlotButton = document.querySelector("#openSlotButton");
+const capacityText = document.querySelector("#capacityText");
+const capacityBar = document.querySelector("#capacityBar");
+const capacityNote = document.querySelector("#capacityNote");
 const visitFlow = document.querySelector("#visitFlow");
 const exceptionList = document.querySelector("#exceptionList");
 const seedExceptionsButton = document.querySelector("#seedExceptionsButton");
@@ -98,6 +101,7 @@ const storageKeys = {
   staffFinance: "berberimClub.staffFinance.v1",
   cashDetails: "berberimClub.cashDetails.v1",
   sessions: "berberimClub.sessions.v1",
+  capacity: "berberimClub.capacity.v1",
   exceptions: "berberimClub.exceptions.v1",
   floorStatus: "berberimClub.floorStatus.v1",
   memberCards: "berberimClub.memberCards.v1",
@@ -217,6 +221,14 @@ const seedSessions = [
   { startsAt: "2026-09-25 20:15:00", customerName: "Mert A.", serviceSummary: "Saç + sakal" },
   { startsAt: "2026-09-25 21:00:00", customerName: "Private blok", serviceSummary: "Korunan saat" },
 ];
+
+const seedCapacity = {
+  usedSessions: 5,
+  maxSessions: 8,
+  reservedBlocks: 2,
+  percent: 62,
+  note: "Private üyeler için 2 kapalı saat korunuyor.",
+};
 
 const seedExceptions = {
   cancelled: 1,
@@ -916,6 +928,40 @@ async function refreshSessionsFromApi({ silent = false } = {}) {
   }
 }
 
+function normalizeCapacity(capacity) {
+  const maxSessions = Number(capacity.maxSessions || 8);
+  const usedSessions = Number(capacity.usedSessions || 0);
+  return {
+    usedSessions,
+    maxSessions,
+    reservedBlocks: Number(capacity.reservedBlocks || 0),
+    percent: Number(capacity.percent || Math.min(Math.round((usedSessions / maxSessions) * 100), 100)),
+    note: capacity.note || "Private üyeler için korunan saat bulunuyor.",
+  };
+}
+
+function renderCapacity(capacity) {
+  const normalized = normalizeCapacity(capacity);
+  capacityText.textContent = `${normalized.usedSessions} / ${normalized.maxSessions} seans`;
+  capacityBar.style.width = `${Math.min(normalized.percent, 100)}%`;
+  capacityNote.textContent = normalized.note;
+}
+
+async function refreshCapacityFromApi({ silent = false } = {}) {
+  try {
+    const capacity = normalizeCapacity(await apiRequest("/api/capacity/today"));
+    saveJson(storageKeys.capacity, capacity);
+    renderCapacity(capacity);
+    if (!silent) showToast("Gün kapasitesi veritabanından güncellendi.");
+    return true;
+  } catch {
+    const fallbackCapacity = readJson(storageKeys.capacity) || seedCapacity;
+    renderCapacity(fallbackCapacity);
+    if (!silent) showToast("API kapalı olduğu için demo kapasite bilgisi kullanılıyor.");
+    return false;
+  }
+}
+
 function normalizeExceptions(summary) {
   return {
     cancelled: Number(summary.cancelled || 0),
@@ -1274,6 +1320,7 @@ openSlotButton.addEventListener("click", async () => {
     await refreshFloorStatusFromApi({ silent: true });
     await refreshMemberCardsFromApi({ silent: true });
     await refreshServiceBreakdownFromApi({ silent: true });
+    await refreshCapacityFromApi({ silent: true });
     slotFeedback.textContent = `${session.customerName} için ${session.serviceSummary} seansı veritabanına açıldı.`;
     showToast("Kontrollü seans veritabanına açıldı.");
     return;
@@ -1306,6 +1353,11 @@ openSlotButton.addEventListener("click", async () => {
   serviceBreakdown.pedicure += 1;
   saveJson(storageKeys.serviceBreakdown, serviceBreakdown);
   renderServiceBreakdown(serviceBreakdown);
+  const capacity = normalizeCapacity(readJson(storageKeys.capacity) || seedCapacity);
+  capacity.usedSessions = Math.min(capacity.usedSessions + 1, capacity.maxSessions);
+  capacity.percent = Math.min(Math.round((capacity.usedSessions / capacity.maxSessions) * 100), 100);
+  saveJson(storageKeys.capacity, capacity);
+  renderCapacity(capacity);
   const floorStatus = normalizeFloorStatus(readJson(storageKeys.floorStatus) || seedFloorStatus);
   floorStatus.inside += 1;
   saveJson(storageKeys.floorStatus, floorStatus);
@@ -1808,6 +1860,10 @@ refreshCashDetailsFromApi({ silent: true });
 const savedSessions = readJson(storageKeys.sessions) || [...seedSessions];
 renderSessions(savedSessions);
 refreshSessionsFromApi({ silent: true });
+
+const savedCapacity = readJson(storageKeys.capacity) || seedCapacity;
+renderCapacity(savedCapacity);
+refreshCapacityFromApi({ silent: true });
 
 const savedExceptions = readJson(storageKeys.exceptions) || seedExceptions;
 renderExceptions(savedExceptions);

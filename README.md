@@ -65,6 +65,7 @@ http://localhost:3000/api/health
 - `GET /api/sessions/exceptions`
 - `POST /api/sessions/exceptions/demo`
 - `GET /api/floor/status`
+- `GET /api/capacity/today`
 - `GET /api/member-cards/today`
 - `GET /api/staff`
 - `POST /api/staff`
