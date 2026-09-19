@@ -550,6 +550,33 @@ function applyPrices(prices, shouldFillForm = false) {
   }
 }
 
+function normalizePrices(prices) {
+  return {
+    haircut: Number(prices.haircut || 0),
+    beard: Number(prices.beard || 0),
+    manicure: Number(prices.manicure || 0),
+    pedicure: Number(prices.pedicure || 0),
+    atelier: Number(prices.atelier || 0),
+    handsFeet: Number(prices.handsFeet || 0),
+    privateDay: Number(prices.privateDay || 0),
+  };
+}
+
+async function refreshPricesFromApi({ silent = false } = {}) {
+  try {
+    const prices = normalizePrices(await apiRequest("/api/service-prices"));
+    saveJson(storageKeys.prices, prices);
+    applyPrices(prices, true);
+    if (!silent) showToast("Hizmet fiyatları veritabanından güncellendi.");
+    return true;
+  } catch {
+    const fallbackPrices = readJson(storageKeys.prices);
+    if (fallbackPrices) applyPrices(fallbackPrices, true);
+    if (!silent) showToast("API kapalı olduğu için demo fiyat hafızası kullanılıyor.");
+    return false;
+  }
+}
+
 function summarizeStaff(staff) {
   const activeStaff = staff.filter((person) => person.status !== "İzinli");
   const masters = activeStaff.filter((person) => person.role.toLocaleLowerCase("tr-TR").includes("usta")).length;
@@ -896,7 +923,7 @@ ownerMetricsForm.addEventListener("submit", (event) => {
   showToast("Günlük yönetici özeti güncellendi.");
 });
 
-ownerPricingForm.addEventListener("submit", (event) => {
+ownerPricingForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = new FormData(ownerPricingForm);
   const prices = {
@@ -908,6 +935,21 @@ ownerPricingForm.addEventListener("submit", (event) => {
     handsFeet: numberFromForm(data, "handsFeet"),
     privateDay: numberFromForm(data, "privateDay"),
   };
+
+  try {
+    const updatedPrices = normalizePrices(
+      await apiRequest("/api/service-prices", {
+        method: "PUT",
+        body: JSON.stringify(prices),
+      })
+    );
+    applyPrices(updatedPrices, true);
+    saveJson(storageKeys.prices, updatedPrices);
+    showToast("Hizmet ve paket fiyatları veritabanına kaydedildi.");
+    return;
+  } catch {
+    showToast("API kapalı. Fiyatlar demo hafızasına kaydediliyor.");
+  }
 
   applyPrices(prices);
   saveJson(storageKeys.prices, prices);
@@ -1219,6 +1261,7 @@ if (savedMetrics) applyMetrics(savedMetrics, true);
 
 const savedPrices = readJson(storageKeys.prices);
 if (savedPrices) applyPrices(savedPrices, true);
+refreshPricesFromApi({ silent: true });
 
 const savedStaff = readJson(storageKeys.staff) || [...seedStaff];
 renderEditableStaff(savedStaff);

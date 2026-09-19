@@ -82,6 +82,20 @@ function ensureService(db, serviceName, amount = 0) {
   return get(db, "select * from services where id = ?", [result.lastInsertRowid]);
 }
 
+const priceServiceMap = {
+  haircut: "İmza kesim",
+  beard: "Sakal tasarım",
+  manicure: "Manikür",
+  pedicure: "Pedikür",
+  atelier: "Atelier Kombin",
+  handsFeet: "El & Ayak Bakımı",
+  privateDay: "Private Tam Gün",
+};
+
+function priceKeyFromServiceName(name) {
+  return Object.entries(priceServiceMap).find(([, serviceName]) => serviceName === name)?.[0] || null;
+}
+
 function ensureDemoStaff(db, masterType) {
   const roleCode = masterType === "care" ? "care_specialist" : masterType === "owner" ? "owner" : "master";
   const fullName = masterType === "care" ? "Elif Zeren" : masterType === "owner" ? "İsmail Gül" : "Faruk Usta";
@@ -240,6 +254,43 @@ export function registerRoutes(app, db) {
         order by services.id`
       )
     );
+  });
+
+  app.get("/api/service-prices", (req, res) => {
+    const rows = all(db, "select name, default_price as defaultPrice from services where active = 1 order by id");
+    const prices = {};
+
+    rows.forEach((row) => {
+      const key = priceKeyFromServiceName(row.name);
+      if (key) prices[key] = Number(row.defaultPrice || 0);
+    });
+
+    res.json(prices);
+  });
+
+  app.put("/api/service-prices", (req, res) => {
+    const prices = req.body || {};
+
+    db.exec("begin");
+    try {
+      Object.entries(priceServiceMap).forEach(([key, serviceName]) => {
+        if (!Object.hasOwn(prices, key)) return;
+        const amount = parseAmount(prices[key]);
+        run(db, "update services set default_price = ?, updated_at = datetime('now') where name = ?", [amount, serviceName]);
+      });
+      db.exec("commit");
+    } catch (error) {
+      db.exec("rollback");
+      throw error;
+    }
+
+    const rows = all(db, "select name, default_price as defaultPrice from services where active = 1 order by id");
+    const updatedPrices = {};
+    rows.forEach((row) => {
+      const key = priceKeyFromServiceName(row.name);
+      if (key) updatedPrices[key] = Number(row.defaultPrice || 0);
+    });
+    res.json(updatedPrices);
   });
 
   app.get("/api/applications", (req, res) => {

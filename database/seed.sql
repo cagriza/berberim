@@ -24,7 +24,10 @@ insert or ignore into services (
   ((select id from service_categories where name = 'Saç'), 'İmza kesim', 900, 45, 1, 0),
   ((select id from service_categories where name = 'Sakal'), 'Sakal tasarım', 450, 25, 1, 0),
   ((select id from service_categories where name = 'El bakımı'), 'Manikür', 650, 30, 0, 1),
-  ((select id from service_categories where name = 'Ayak bakımı'), 'Pedikür', 850, 40, 0, 1);
+  ((select id from service_categories where name = 'Ayak bakımı'), 'Pedikür', 850, 40, 0, 1),
+  ((select id from service_categories where name = 'Kombin'), 'Atelier Kombin', 1850, 75, 1, 1),
+  ((select id from service_categories where name = 'Kombin'), 'El & Ayak Bakımı', 1350, 70, 0, 1),
+  ((select id from service_categories where name = 'Kombin'), 'Private Tam Gün', 3200, 120, 1, 1);
 
 insert or ignore into stock_items (name, quantity, unit, minimum_quantity, status) values
   ('Tek kullanımlık havlu', 42, 'adet', 15, 'safe'),
