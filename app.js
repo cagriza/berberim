@@ -52,6 +52,7 @@ const stockItemForm = document.querySelector("#stockItemForm");
 const stockMovementForm = document.querySelector("#stockMovementForm");
 const staffFinanceForm = document.querySelector("#staffFinanceForm");
 const editableStaffList = document.querySelector("#editableStaffList");
+const teamStatusList = document.querySelector("#teamStatusList");
 const editablePriceList = document.querySelector("#editablePriceList");
 const editableStockList = document.querySelector("#editableStockList");
 const movementStockSelect = document.querySelector("#movementStockSelect");
@@ -713,6 +714,31 @@ function renderEditableStaff(staff) {
   });
 
   summarizeStaff(staff);
+  renderTeamStatus(staff);
+}
+
+function renderTeamStatus(staff) {
+  teamStatusList.innerHTML = "";
+  const supportCount = staff.filter((person) => person.role === "Destek" && person.status !== "İzinli").length;
+  const visibleStaff = staff.filter((person) => person.role !== "Destek").slice(0, 5);
+
+  visibleStaff.forEach((person) => {
+    const item = document.createElement("div");
+    item.innerHTML = `
+      <strong>${escapeHtml(person.name)}</strong>
+      <span>${escapeHtml(person.role)} · ${escapeHtml(person.shift)} · ${escapeHtml(person.status)}</span>
+    `;
+    teamStatusList.append(item);
+  });
+
+  if (supportCount) {
+    const item = document.createElement("div");
+    item.innerHTML = `
+      <strong>Yardımcı ekip</strong>
+      <span>${supportCount} kişi · hazırlık, karşılama, temizlik · Aktif</span>
+    `;
+    teamStatusList.append(item);
+  }
 }
 
 function renderSpecialPrices(prices) {
