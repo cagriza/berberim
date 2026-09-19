@@ -77,6 +77,10 @@ const cashCashTotal = document.querySelector("#cashCashTotal");
 const cashOnlineTotal = document.querySelector("#cashOnlineTotal");
 const cashAverageTicket = document.querySelector("#cashAverageTicket");
 const cashLedger = document.querySelector("#cashLedger");
+const floorInside = document.querySelector("#floorInside");
+const floorWaiting = document.querySelector("#floorWaiting");
+const floorCompleted = document.querySelector("#floorCompleted");
+const floorOpenPayment = document.querySelector("#floorOpenPayment");
 const priceTargets = document.querySelectorAll("[data-price-target]");
 const storageKeys = {
   metrics: "berberimClub.metrics.v2",
@@ -89,6 +93,7 @@ const storageKeys = {
   cashDetails: "berberimClub.cashDetails.v1",
   sessions: "berberimClub.sessions.v1",
   exceptions: "berberimClub.exceptions.v1",
+  floorStatus: "berberimClub.floorStatus.v1",
   specialPrices: "berberimClub.specialPrices.v1",
   stock: "berberimClub.stock.v1",
   stockMovements: "berberimClub.stockMovements.v1",
@@ -209,6 +214,13 @@ const seedExceptions = {
   cancelled: 1,
   noShow: 0,
   reschedule: 2,
+};
+
+const seedFloorStatus = {
+  inside: 3,
+  waiting: 2,
+  completed: 18,
+  openPayment: 1,
 };
 
 const seedCashDetails = {
@@ -872,6 +884,38 @@ async function refreshExceptionsFromApi({ silent = false } = {}) {
   }
 }
 
+function normalizeFloorStatus(status) {
+  return {
+    inside: Number(status.inside || 0),
+    waiting: Number(status.waiting || 0),
+    completed: Number(status.completed || 0),
+    openPayment: Number(status.openPayment || 0),
+  };
+}
+
+function renderFloorStatus(status) {
+  const floor = normalizeFloorStatus(status);
+  floorInside.textContent = String(floor.inside);
+  floorWaiting.textContent = String(floor.waiting);
+  floorCompleted.textContent = String(floor.completed);
+  floorOpenPayment.textContent = String(floor.openPayment);
+}
+
+async function refreshFloorStatusFromApi({ silent = false } = {}) {
+  try {
+    const status = normalizeFloorStatus(await apiRequest("/api/floor/status"));
+    saveJson(storageKeys.floorStatus, status);
+    renderFloorStatus(status);
+    if (!silent) showToast("Dükkân akışı veritabanından güncellendi.");
+    return true;
+  } catch {
+    const fallbackStatus = readJson(storageKeys.floorStatus) || seedFloorStatus;
+    renderFloorStatus(fallbackStatus);
+    if (!silent) showToast("API kapalı olduğu için demo dükkân akışı kullanılıyor.");
+    return false;
+  }
+}
+
 function calculateSplit(masterType, amount) {
   if (masterType === "owner") {
     return {
@@ -1090,6 +1134,7 @@ openSlotButton.addEventListener("click", async () => {
       })
     );
     await refreshSessionsFromApi({ silent: true });
+    await refreshFloorStatusFromApi({ silent: true });
     slotFeedback.textContent = `${session.customerName} için ${session.serviceSummary} seansı veritabanına açıldı.`;
     showToast("Kontrollü seans veritabanına açıldı.");
     return;
@@ -1106,6 +1151,10 @@ openSlotButton.addEventListener("click", async () => {
   });
   saveJson(storageKeys.sessions, sessions);
   renderSessions(sessions);
+  const floorStatus = normalizeFloorStatus(readJson(storageKeys.floorStatus) || seedFloorStatus);
+  floorStatus.inside += 1;
+  saveJson(storageKeys.floorStatus, floorStatus);
+  renderFloorStatus(floorStatus);
   slotFeedback.textContent =
     "Cuma 19:30 saç, manikür ve pedikür seansı Atelier üyelerine açıldı. Sistem 115 dk ve 2 uzman ihtiyacıyla planladı.";
   showToast("Kontrollü seans erişimi güncellendi.");
@@ -1121,6 +1170,7 @@ seedExceptionsButton.addEventListener("click", async () => {
     );
     saveJson(storageKeys.exceptions, exceptions);
     renderExceptions(exceptions);
+    await refreshFloorStatusFromApi({ silent: true });
     showToast("İptal ve gelmedi takip kayıtları veritabanına işlendi.");
     return;
   } catch {
@@ -1133,6 +1183,10 @@ seedExceptionsButton.addEventListener("click", async () => {
   exceptions.reschedule += 1;
   saveJson(storageKeys.exceptions, exceptions);
   renderExceptions(exceptions);
+  const floorStatus = normalizeFloorStatus(readJson(storageKeys.floorStatus) || seedFloorStatus);
+  floorStatus.waiting = Math.max(floorStatus.waiting - 1, 0);
+  saveJson(storageKeys.floorStatus, floorStatus);
+  renderFloorStatus(floorStatus);
 });
 
 copyInviteButton.addEventListener("click", async () => {
@@ -1349,6 +1403,7 @@ checkoutForm.addEventListener("submit", async (event) => {
     );
     await refreshStaffFinanceFromApi({ silent: true });
     await refreshCashDetailsFromApi({ silent: true });
+    await refreshFloorStatusFromApi({ silent: true });
     return;
   } catch {
     showToast("API kapalı. Ödeme demo akışında gösteriliyor.");
@@ -1374,6 +1429,11 @@ checkoutForm.addEventListener("submit", async (event) => {
   });
   saveJson(storageKeys.cashDetails, cashDetails);
   renderCashDetails(cashDetails);
+  const floorStatus = normalizeFloorStatus(readJson(storageKeys.floorStatus) || seedFloorStatus);
+  floorStatus.completed += 1;
+  floorStatus.openPayment = Math.max(floorStatus.openPayment - 1, 0);
+  saveJson(storageKeys.floorStatus, floorStatus);
+  renderFloorStatus(floorStatus);
 
   const priceNote = specialPrice ? " Özel fiyat kaydıyla eşleşti." : "";
   showToast(`${formatCurrency(amount)} ${paymentType.toLocaleLowerCase("tr-TR")} ile kasaya geçti.${priceNote}`);
@@ -1586,5 +1646,9 @@ refreshSessionsFromApi({ silent: true });
 const savedExceptions = readJson(storageKeys.exceptions) || seedExceptions;
 renderExceptions(savedExceptions);
 refreshExceptionsFromApi({ silent: true });
+
+const savedFloorStatus = readJson(storageKeys.floorStatus) || seedFloorStatus;
+renderFloorStatus(savedFloorStatus);
+refreshFloorStatusFromApi({ silent: true });
 
 renderSplitPreview();

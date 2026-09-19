@@ -63,6 +63,7 @@ http://localhost:3000/api/health
 - `POST /api/sessions/open-demo`
 - `GET /api/sessions/exceptions`
 - `POST /api/sessions/exceptions/demo`
+- `GET /api/floor/status`
 - `GET /api/staff`
 - `POST /api/staff`
 - `DELETE /api/staff/:id`

@@ -611,6 +611,32 @@ export function registerRoutes(app, db) {
     res.status(201).json(summary);
   });
 
+  app.get("/api/floor/status", (req, res) => {
+    const inside = get(
+      db,
+      "select count(*) as count from service_sessions where status in ('in_progress', 'open')"
+    );
+    const waiting = get(
+      db,
+      "select count(*) as count from service_sessions where status in ('planned')"
+    );
+    const completed = get(db, "select count(*) as count from service_sessions where status = 'completed'");
+    const openPayment = get(
+      db,
+      `select count(*) as count
+       from service_sessions
+       left join payments on payments.session_id = service_sessions.id
+       where service_sessions.status = 'completed' and payments.id is null`
+    );
+
+    res.json({
+      inside: Number(inside.count || 0),
+      waiting: Number(waiting.count || 0),
+      completed: Number(completed.count || 0),
+      openPayment: Number(openPayment.count || 0),
+    });
+  });
+
   app.get("/api/staff", (req, res) => {
     res.json(
       all(
