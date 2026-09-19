@@ -82,6 +82,10 @@ const floorInside = document.querySelector("#floorInside");
 const floorWaiting = document.querySelector("#floorWaiting");
 const floorCompleted = document.querySelector("#floorCompleted");
 const floorOpenPayment = document.querySelector("#floorOpenPayment");
+const breakdownHaircut = document.querySelector("#breakdownHaircut");
+const breakdownBeard = document.querySelector("#breakdownBeard");
+const breakdownManicure = document.querySelector("#breakdownManicure");
+const breakdownPedicure = document.querySelector("#breakdownPedicure");
 const priceTargets = document.querySelectorAll("[data-price-target]");
 const storageKeys = {
   metrics: "berberimClub.metrics.v2",
@@ -96,6 +100,7 @@ const storageKeys = {
   exceptions: "berberimClub.exceptions.v1",
   floorStatus: "berberimClub.floorStatus.v1",
   memberCards: "berberimClub.memberCards.v1",
+  serviceBreakdown: "berberimClub.serviceBreakdown.v1",
   specialPrices: "berberimClub.specialPrices.v1",
   stock: "berberimClub.stock.v1",
   stockMovements: "berberimClub.stockMovements.v1",
@@ -223,6 +228,13 @@ const seedFloorStatus = {
   waiting: 2,
   completed: 18,
   openPayment: 1,
+};
+
+const seedServiceBreakdown = {
+  haircut: 9,
+  beard: 7,
+  manicure: 4,
+  pedicure: 2,
 };
 
 const seedMemberCards = [
@@ -983,6 +995,38 @@ async function refreshMemberCardsFromApi({ silent = false } = {}) {
   }
 }
 
+function normalizeServiceBreakdown(breakdown) {
+  return {
+    haircut: Number(breakdown.haircut || 0),
+    beard: Number(breakdown.beard || 0),
+    manicure: Number(breakdown.manicure || 0),
+    pedicure: Number(breakdown.pedicure || 0),
+  };
+}
+
+function renderServiceBreakdown(breakdown) {
+  const summary = normalizeServiceBreakdown(breakdown);
+  breakdownHaircut.textContent = String(summary.haircut);
+  breakdownBeard.textContent = String(summary.beard);
+  breakdownManicure.textContent = String(summary.manicure);
+  breakdownPedicure.textContent = String(summary.pedicure);
+}
+
+async function refreshServiceBreakdownFromApi({ silent = false } = {}) {
+  try {
+    const breakdown = normalizeServiceBreakdown(await apiRequest("/api/services/breakdown"));
+    saveJson(storageKeys.serviceBreakdown, breakdown);
+    renderServiceBreakdown(breakdown);
+    if (!silent) showToast("Hizmet kırılımı veritabanından güncellendi.");
+    return true;
+  } catch {
+    const fallbackBreakdown = readJson(storageKeys.serviceBreakdown) || seedServiceBreakdown;
+    renderServiceBreakdown(fallbackBreakdown);
+    if (!silent) showToast("API kapalı olduğu için demo hizmet kırılımı kullanılıyor.");
+    return false;
+  }
+}
+
 function calculateSplit(masterType, amount) {
   if (masterType === "owner") {
     return {
@@ -1203,6 +1247,7 @@ openSlotButton.addEventListener("click", async () => {
     await refreshSessionsFromApi({ silent: true });
     await refreshFloorStatusFromApi({ silent: true });
     await refreshMemberCardsFromApi({ silent: true });
+    await refreshServiceBreakdownFromApi({ silent: true });
     slotFeedback.textContent = `${session.customerName} için ${session.serviceSummary} seansı veritabanına açıldı.`;
     showToast("Kontrollü seans veritabanına açıldı.");
     return;
@@ -1229,6 +1274,12 @@ openSlotButton.addEventListener("click", async () => {
   });
   saveJson(storageKeys.memberCards, memberCards);
   renderMemberCards(memberCards);
+  const serviceBreakdown = normalizeServiceBreakdown(readJson(storageKeys.serviceBreakdown) || seedServiceBreakdown);
+  serviceBreakdown.haircut += 1;
+  serviceBreakdown.manicure += 1;
+  serviceBreakdown.pedicure += 1;
+  saveJson(storageKeys.serviceBreakdown, serviceBreakdown);
+  renderServiceBreakdown(serviceBreakdown);
   const floorStatus = normalizeFloorStatus(readJson(storageKeys.floorStatus) || seedFloorStatus);
   floorStatus.inside += 1;
   saveJson(storageKeys.floorStatus, floorStatus);
@@ -1484,6 +1535,7 @@ checkoutForm.addEventListener("submit", async (event) => {
     await refreshCashDetailsFromApi({ silent: true });
     await refreshFloorStatusFromApi({ silent: true });
     await refreshMemberCardsFromApi({ silent: true });
+    await refreshServiceBreakdownFromApi({ silent: true });
     return;
   } catch {
     showToast("API kapalı. Ödeme demo akışında gösteriliyor.");
@@ -1509,6 +1561,14 @@ checkoutForm.addEventListener("submit", async (event) => {
   });
   saveJson(storageKeys.cashDetails, cashDetails);
   renderCashDetails(cashDetails);
+  const serviceBreakdown = normalizeServiceBreakdown(readJson(storageKeys.serviceBreakdown) || seedServiceBreakdown);
+  const normalizedServiceName = serviceName.toLocaleLowerCase("tr-TR");
+  if (normalizedServiceName.includes("saç")) serviceBreakdown.haircut += 1;
+  if (normalizedServiceName.includes("sakal")) serviceBreakdown.beard += 1;
+  if (normalizedServiceName.includes("manikür")) serviceBreakdown.manicure += 1;
+  if (normalizedServiceName.includes("pedikür")) serviceBreakdown.pedicure += 1;
+  saveJson(storageKeys.serviceBreakdown, serviceBreakdown);
+  renderServiceBreakdown(serviceBreakdown);
   const floorStatus = normalizeFloorStatus(readJson(storageKeys.floorStatus) || seedFloorStatus);
   floorStatus.completed += 1;
   floorStatus.openPayment = Math.max(floorStatus.openPayment - 1, 0);
@@ -1734,5 +1794,9 @@ refreshFloorStatusFromApi({ silent: true });
 const savedMemberCards = readJson(storageKeys.memberCards) || [...seedMemberCards];
 renderMemberCards(savedMemberCards);
 refreshMemberCardsFromApi({ silent: true });
+
+const savedServiceBreakdown = readJson(storageKeys.serviceBreakdown) || seedServiceBreakdown;
+renderServiceBreakdown(savedServiceBreakdown);
+refreshServiceBreakdownFromApi({ silent: true });
 
 renderSplitPreview();

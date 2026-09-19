@@ -80,6 +80,15 @@ function statusText(status) {
   return labels[status] || "takipte";
 }
 
+function addServiceBreakdown(summary, serviceName, quantity = 1) {
+  const name = String(serviceName || "").toLocaleLowerCase("tr-TR");
+  const count = Number(quantity || 1);
+  if (name.includes("imza") || name.includes("saç") || name.includes("private") || name.includes("atelier")) summary.haircut += count;
+  if (name.includes("sakal") || name.includes("private") || name.includes("atelier")) summary.beard += count;
+  if (name.includes("manikür") || name.includes("el & ayak") || name.includes("private") || name.includes("atelier")) summary.manicure += count;
+  if (name.includes("pedikür") || name.includes("el & ayak") || name.includes("private")) summary.pedicure += count;
+}
+
 function ensureService(db, serviceName, amount = 0) {
   const name = String(serviceName || "").trim();
   const existing = get(db, "select * from services where name = ? limit 1", [name]);
@@ -326,6 +335,28 @@ export function registerRoutes(app, db) {
       if (key) updatedPrices[key] = Number(row.defaultPrice || 0);
     });
     res.json(updatedPrices);
+  });
+
+  app.get("/api/services/breakdown", (req, res) => {
+    const rows = all(
+      db,
+      `select
+        services.name,
+        coalesce(sum(service_session_items.quantity), 0) as quantity
+      from service_session_items
+      join services on services.id = service_session_items.service_id
+      join service_sessions on service_sessions.id = service_session_items.session_id
+      where service_sessions.status in ('open', 'planned', 'completed')
+      group by services.id, services.name`
+    );
+    const summary = {
+      haircut: 0,
+      beard: 0,
+      manicure: 0,
+      pedicure: 0,
+    };
+    rows.forEach((row) => addServiceBreakdown(summary, row.name, row.quantity));
+    res.json(summary);
   });
 
   app.get("/api/applications", (req, res) => {

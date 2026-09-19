@@ -56,6 +56,7 @@ http://localhost:3000/api/health
 - `GET /api/services`
 - `GET /api/service-prices`
 - `PUT /api/service-prices`
+- `GET /api/services/breakdown`
 - `GET /api/applications`
 - `POST /api/applications`
 - `PATCH /api/applications/:id/status`
