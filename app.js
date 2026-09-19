@@ -32,6 +32,8 @@ const toast = document.querySelector("#toast");
 const slotFeedback = document.querySelector("#slotFeedback");
 const openSlotButton = document.querySelector("#openSlotButton");
 const visitFlow = document.querySelector("#visitFlow");
+const exceptionList = document.querySelector("#exceptionList");
+const seedExceptionsButton = document.querySelector("#seedExceptionsButton");
 const copyInviteButton = document.querySelector("#copyInviteButton");
 const demoLoginForm = document.querySelector("#demoLoginForm");
 const demoUserSelect = document.querySelector("#demoUserSelect");
@@ -86,6 +88,7 @@ const storageKeys = {
   staffFinance: "berberimClub.staffFinance.v1",
   cashDetails: "berberimClub.cashDetails.v1",
   sessions: "berberimClub.sessions.v1",
+  exceptions: "berberimClub.exceptions.v1",
   specialPrices: "berberimClub.specialPrices.v1",
   stock: "berberimClub.stock.v1",
   stockMovements: "berberimClub.stockMovements.v1",
@@ -201,6 +204,12 @@ const seedSessions = [
   { startsAt: "2026-09-25 20:15:00", customerName: "Mert A.", serviceSummary: "Saç + sakal" },
   { startsAt: "2026-09-25 21:00:00", customerName: "Private blok", serviceSummary: "Korunan saat" },
 ];
+
+const seedExceptions = {
+  cancelled: 1,
+  noShow: 0,
+  reschedule: 2,
+};
 
 const seedCashDetails = {
   grossAmount: 24850,
@@ -831,6 +840,38 @@ async function refreshSessionsFromApi({ silent = false } = {}) {
   }
 }
 
+function normalizeExceptions(summary) {
+  return {
+    cancelled: Number(summary.cancelled || 0),
+    noShow: Number(summary.noShow || 0),
+    reschedule: Number(summary.reschedule || 0),
+  };
+}
+
+function renderExceptions(summary) {
+  const exceptions = normalizeExceptions(summary);
+  exceptionList.innerHTML = `
+    <div><strong>${exceptions.cancelled}</strong><span>Son dakika iptal</span></div>
+    <div><strong>${exceptions.noShow}</strong><span>Gelmedi</span></div>
+    <div><strong>${exceptions.reschedule}</strong><span>Yeniden planlanacak</span></div>
+  `;
+}
+
+async function refreshExceptionsFromApi({ silent = false } = {}) {
+  try {
+    const exceptions = normalizeExceptions(await apiRequest("/api/sessions/exceptions"));
+    saveJson(storageKeys.exceptions, exceptions);
+    renderExceptions(exceptions);
+    if (!silent) showToast("İptal ve gelmedi özeti veritabanından güncellendi.");
+    return true;
+  } catch {
+    const fallbackExceptions = readJson(storageKeys.exceptions) || seedExceptions;
+    renderExceptions(fallbackExceptions);
+    if (!silent) showToast("API kapalı olduğu için demo takip özeti kullanılıyor.");
+    return false;
+  }
+}
+
 function calculateSplit(masterType, amount) {
   if (masterType === "owner") {
     return {
@@ -1068,6 +1109,30 @@ openSlotButton.addEventListener("click", async () => {
   slotFeedback.textContent =
     "Cuma 19:30 saç, manikür ve pedikür seansı Atelier üyelerine açıldı. Sistem 115 dk ve 2 uzman ihtiyacıyla planladı.";
   showToast("Kontrollü seans erişimi güncellendi.");
+});
+
+seedExceptionsButton.addEventListener("click", async () => {
+  try {
+    const exceptions = normalizeExceptions(
+      await apiRequest("/api/sessions/exceptions/demo", {
+        method: "POST",
+        body: JSON.stringify({}),
+      })
+    );
+    saveJson(storageKeys.exceptions, exceptions);
+    renderExceptions(exceptions);
+    showToast("İptal ve gelmedi takip kayıtları veritabanına işlendi.");
+    return;
+  } catch {
+    showToast("API kapalı. Takip kayıtları demo hafızasına işlendi.");
+  }
+
+  const exceptions = normalizeExceptions(readJson(storageKeys.exceptions) || seedExceptions);
+  exceptions.cancelled += 1;
+  exceptions.noShow += 1;
+  exceptions.reschedule += 1;
+  saveJson(storageKeys.exceptions, exceptions);
+  renderExceptions(exceptions);
 });
 
 copyInviteButton.addEventListener("click", async () => {
@@ -1517,5 +1582,9 @@ refreshCashDetailsFromApi({ silent: true });
 const savedSessions = readJson(storageKeys.sessions) || [...seedSessions];
 renderSessions(savedSessions);
 refreshSessionsFromApi({ silent: true });
+
+const savedExceptions = readJson(storageKeys.exceptions) || seedExceptions;
+renderExceptions(savedExceptions);
+refreshExceptionsFromApi({ silent: true });
 
 renderSplitPreview();

@@ -511,6 +511,106 @@ export function registerRoutes(app, db) {
     }
   });
 
+  app.get("/api/sessions/exceptions", (req, res) => {
+    const rows = all(
+      db,
+      `select status, count(*) as count
+       from service_sessions
+       where status in ('cancelled', 'no_show', 'reschedule')
+       group by status`
+    );
+    const summary = {
+      cancelled: 0,
+      noShow: 0,
+      reschedule: 0,
+    };
+
+    rows.forEach((row) => {
+      if (row.status === "cancelled") summary.cancelled = Number(row.count || 0);
+      if (row.status === "no_show") summary.noShow = Number(row.count || 0);
+      if (row.status === "reschedule") summary.reschedule = Number(row.count || 0);
+    });
+
+    res.json(summary);
+  });
+
+  app.post("/api/sessions/exceptions/demo", (req, res) => {
+    const demoRows = [
+      {
+        name: "Mert A.",
+        phone: "demo-mert-a",
+        service: "Sakal tasarım",
+        status: "cancelled",
+        startsAt: "2026-09-25 18:15:00",
+        note: "Son dakika iptal",
+      },
+      {
+        name: "Emre K.",
+        phone: "demo-emre-k",
+        service: "Manikür",
+        status: "no_show",
+        startsAt: "2026-09-25 17:30:00",
+        note: "Gelmedi",
+      },
+      {
+        name: "Can B.",
+        phone: "demo-can-b",
+        service: "İmza kesim",
+        status: "reschedule",
+        startsAt: "2026-09-25 20:45:00",
+        note: "Yeniden planlanacak",
+      },
+    ];
+
+    db.exec("begin");
+    try {
+      demoRows.forEach((demo) => {
+        const customer = ensureCustomerByPhone(db, demo.name, demo.phone);
+        const staffContext = ensureDemoStaff(db, "employee");
+        const service = ensureService(db, demo.service);
+        const existing = get(
+          db,
+          "select * from service_sessions where customer_id = ? and status = ? and starts_at = ? limit 1",
+          [customer.id, demo.status, demo.startsAt]
+        );
+        if (existing) return;
+
+        const price = Number(service.default_price || 0);
+        const sessionResult = run(
+          db,
+          `insert into service_sessions (customer_id, primary_staff_id, status, starts_at, total_amount, note)
+           values (?, ?, ?, ?, ?, ?)`,
+          [customer.id, staffContext.staff.id, demo.status, demo.startsAt, price, demo.note]
+        );
+        run(
+          db,
+          `insert into service_session_items (session_id, service_id, quantity, unit_price, line_total)
+           values (?, ?, ?, ?, ?)`,
+          [sessionResult.lastInsertRowid, service.id, 1, price, price]
+        );
+      });
+      db.exec("commit");
+    } catch (error) {
+      db.exec("rollback");
+      throw error;
+    }
+
+    const rows = all(
+      db,
+      `select status, count(*) as count
+       from service_sessions
+       where status in ('cancelled', 'no_show', 'reschedule')
+       group by status`
+    );
+    const summary = { cancelled: 0, noShow: 0, reschedule: 0 };
+    rows.forEach((row) => {
+      if (row.status === "cancelled") summary.cancelled = Number(row.count || 0);
+      if (row.status === "no_show") summary.noShow = Number(row.count || 0);
+      if (row.status === "reschedule") summary.reschedule = Number(row.count || 0);
+    });
+    res.status(201).json(summary);
+  });
+
   app.get("/api/staff", (req, res) => {
     res.json(
       all(
