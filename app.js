@@ -1,16 +1,22 @@
 const seedApplications = [
   {
+    id: "seed-mert",
     name: "Mert A.",
+    phone: "demo-mert-a",
     intent: "Düzenli saç ve sakal bakımı",
     status: "Davet kodlu",
   },
   {
+    id: "seed-emre",
     name: "Emre K.",
+    phone: "demo-emre-k",
     intent: "Manikür ve pedikür bakımı",
     status: "İnceleme",
   },
   {
+    id: "seed-can",
     name: "Can B.",
+    phone: "demo-can-b",
     intent: "Sakal tasarım ve manikür",
     status: "Bekliyor",
   },
@@ -65,6 +71,7 @@ const storageKeys = {
   prices: "berberimClub.prices",
   demoUsers: "berberimClub.demoUsers.v1",
   activeDemoUser: "berberimClub.activeDemoUser.v1",
+  applications: "berberimClub.applications.v1",
   staff: "berberimClub.staff.v2",
   staffFinance: "berberimClub.staffFinance.v1",
   specialPrices: "berberimClub.specialPrices.v1",
@@ -698,6 +705,34 @@ function applySpecialPriceAmount() {
   }
 }
 
+function normalizeApplication(application) {
+  return {
+    id: application.id,
+    name: application.name,
+    phone: application.phone || "",
+    intent: application.intent || "Bakım başvurusu",
+    note: application.note || "",
+    code: application.code || "",
+    statusCode: application.statusCode || "",
+    status: application.status || "Ön inceleme",
+  };
+}
+
+async function refreshApplicationsFromApi({ silent = false } = {}) {
+  try {
+    state.applications = (await apiRequest("/api/applications")).map(normalizeApplication);
+    saveJson(storageKeys.applications, state.applications);
+    renderQueue();
+    if (!silent) showToast("Başvuru kuyruğu veritabanından güncellendi.");
+    return true;
+  } catch {
+    state.applications = readJson(storageKeys.applications) || [...seedApplications];
+    renderQueue();
+    if (!silent) showToast("API kapalı olduğu için demo başvuru kuyruğu kullanılıyor.");
+    return false;
+  }
+}
+
 function renderQueue() {
   queue.innerHTML = "";
 
@@ -713,50 +748,100 @@ function renderQueue() {
         <span>${safeIntent} · ${safeStatus}</span>
       </div>
       <div class="queue-actions" aria-label="${safeName} başvuru işlemleri">
-        <button class="icon-button" type="button" data-action="approve" data-index="${index}" title="Onayla">✓</button>
-        <button class="icon-button" type="button" data-action="hold" data-index="${index}" title="Beklet">…</button>
+        <button class="icon-button" type="button" data-action="approve" data-index="${index}" data-application-id="${application.id || ""}" title="Onayla">✓</button>
+        <button class="icon-button" type="button" data-action="hold" data-index="${index}" data-application-id="${application.id || ""}" title="Beklet">…</button>
       </div>
     `;
     queue.append(item);
   });
 }
 
-form.addEventListener("submit", (event) => {
+form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = new FormData(form);
   const name = String(data.get("name") || "").trim();
+  const phone = String(data.get("phone") || "").trim();
   const intent = String(data.get("intent") || "Bakım başvurusu");
   const sets = data.getAll("sets").map((value) => String(value));
   const code = String(data.get("code") || "").trim();
+  const note = String(data.get("note") || "").trim();
   const combinedIntent = sets.length ? `${intent} + ${sets.join(" + ")}` : intent;
+  const application = {
+    name,
+    phone,
+    intent: combinedIntent,
+    code,
+    note,
+  };
+
+  try {
+    await apiRequest("/api/applications", {
+      method: "POST",
+      body: JSON.stringify(application),
+    });
+    await refreshApplicationsFromApi({ silent: true });
+    form.reset();
+    showToast("Başvuru veritabanına kaydedildi. Üyelik onayı işletme panelinden verilecek.");
+    return;
+  } catch {
+    showToast("API kapalı. Başvuru demo hafızasına kaydediliyor.");
+  }
 
   state.applications.unshift({
+    id: `local-${Date.now()}`,
     name,
+    phone,
     intent: combinedIntent,
+    code,
+    note,
     status: code ? "Davet kodlu" : "Ön inceleme",
   });
 
   form.reset();
+  saveJson(storageKeys.applications, state.applications);
   renderQueue();
   showToast("Başvuru kaydedildi. Üyelik onayı işletme panelinden verilecek.");
 });
 
-queue.addEventListener("click", (event) => {
+queue.addEventListener("click", async (event) => {
   const button = event.target.closest("button");
   if (!button) return;
 
   const index = Number(button.dataset.index);
+  const applicationId = Number(button.dataset.applicationId || 0);
   const application = state.applications[index];
   if (!application) return;
+  const nextStatus = button.dataset.action === "approve" ? "active" : "hold";
+
+  if (applicationId) {
+    try {
+      await apiRequest(`/api/applications/${applicationId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      await refreshApplicationsFromApi({ silent: true });
+      showToast(
+        nextStatus === "active"
+          ? `${application.name} üyeliği veritabanında onaylandı.`
+          : `${application.name} veritabanında beklemeye alındı.`
+      );
+      return;
+    } catch {
+      showToast("API kapalı. Başvuru durumu demo hafızasında güncelleniyor.");
+    }
+  }
 
   if (button.dataset.action === "approve") {
     application.status = "Onaylandı";
+    application.statusCode = "active";
     showToast(`${application.name} üyeliği onaylandı. Seans erişimi artık seçili açılabilir.`);
   } else {
     application.status = "Beklemeye alındı";
+    application.statusCode = "hold";
     showToast(`${application.name} bekleme listesine alındı.`);
   }
 
+  saveJson(storageKeys.applications, state.applications);
   renderQueue();
 });
 
@@ -1153,6 +1238,10 @@ refreshDemoUsersFromApi({ silent: true }).then((users) => {
   applyDemoUser(matchingUser, false);
 });
 
+state.applications = readJson(storageKeys.applications) || [...seedApplications];
+renderQueue();
+refreshApplicationsFromApi({ silent: true });
+
 const savedSpecialPrices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
 renderSpecialPrices(savedSpecialPrices);
 refreshSpecialPricesFromApi({ silent: true });
@@ -1165,4 +1254,3 @@ renderStockMovements(savedStockMovements);
 refreshStockFromApi({ silent: true });
 
 renderSplitPreview();
-renderQueue();

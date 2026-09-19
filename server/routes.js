@@ -30,6 +30,43 @@ function ensureCustomer(db, fullName) {
   return get(db, "select * from customer_profiles where id = ?", [result.lastInsertRowid]);
 }
 
+function statusLabel(status, inviteCode) {
+  const labels = {
+    active: "Onaylandı",
+    invited: "Davet kodlu",
+    review: "İnceleme",
+    hold: "Beklemeye alındı",
+    candidate: "Ön inceleme",
+  };
+  if (inviteCode && status === "candidate") return "Davet kodlu";
+  return labels[status] || "Ön inceleme";
+}
+
+function parseCustomerNotes(notes) {
+  if (!notes) return {};
+  try {
+    const parsed = JSON.parse(notes);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return { note: String(notes) };
+  }
+}
+
+function customerApplicationFromRow(row) {
+  const notes = parseCustomerNotes(row.privateNotes);
+  return {
+    id: row.id,
+    name: row.name,
+    phone: row.phone,
+    intent: notes.intent || "Bakım başvurusu",
+    note: notes.note || "",
+    code: row.inviteCode || "",
+    statusCode: row.statusCode,
+    status: statusLabel(row.statusCode, row.inviteCode),
+    createdAt: row.createdAt,
+  };
+}
+
 function ensureService(db, serviceName, amount = 0) {
   const name = String(serviceName || "").trim();
   const existing = get(db, "select * from services where name = ? limit 1", [name]);
@@ -203,6 +240,136 @@ export function registerRoutes(app, db) {
         order by services.id`
       )
     );
+  });
+
+  app.get("/api/applications", (req, res) => {
+    res.json(
+      all(
+        db,
+        `select
+          id,
+          full_name as name,
+          phone,
+          membership_status as statusCode,
+          invite_code as inviteCode,
+          private_notes as privateNotes,
+          created_at as createdAt
+        from customer_profiles
+        where membership_status in ('candidate', 'review', 'invited', 'hold', 'active')
+          and id in (
+            select max(id)
+            from customer_profiles
+            where membership_status in ('candidate', 'review', 'invited', 'hold', 'active')
+            group by phone
+          )
+        order by
+          case membership_status
+            when 'review' then 1
+            when 'invited' then 2
+            when 'candidate' then 3
+            when 'hold' then 4
+            when 'active' then 5
+            else 6
+          end,
+          id desc`
+      ).map(customerApplicationFromRow)
+    );
+  });
+
+  app.post("/api/applications", (req, res) => {
+    const name = String(req.body.name || "").trim();
+    const phone = String(req.body.phone || "").trim();
+    const intent = String(req.body.intent || "Bakım başvurusu").trim();
+    const note = String(req.body.note || "").trim();
+    const code = String(req.body.code || "").trim();
+
+    if (!name || !phone) {
+      res.status(400).json({ error: "Ad soyad ve telefon zorunlu." });
+      return;
+    }
+
+    const status = code ? "invited" : "review";
+    const notes = JSON.stringify({ intent, note });
+    const existing = get(db, "select * from customer_profiles where phone = ? order by id desc limit 1", [phone]);
+
+    if (existing) {
+      run(
+        db,
+        `update customer_profiles
+         set full_name = ?,
+           membership_status = ?,
+           invite_code = ?,
+           private_notes = ?,
+           updated_at = datetime('now')
+         where id = ?`,
+        [name, status, code || null, notes, existing.id]
+      );
+    } else {
+      run(
+        db,
+        `insert into customer_profiles (full_name, phone, membership_level, membership_status, invite_code, private_notes)
+         values (?, ?, ?, ?, ?, ?)`,
+        [name, phone, "candidate", status, code || null, notes]
+      );
+    }
+
+    const application = get(
+      db,
+      `select
+        id,
+        full_name as name,
+        phone,
+        membership_status as statusCode,
+        invite_code as inviteCode,
+        private_notes as privateNotes,
+        created_at as createdAt
+      from customer_profiles
+      where phone = ?
+      limit 1`,
+      [phone]
+    );
+    res.status(201).json(customerApplicationFromRow(application));
+  });
+
+  app.patch("/api/applications/:id/status", (req, res) => {
+    const id = Number(req.params.id);
+    const status = String(req.body.status || "").trim();
+    const allowedStatuses = new Set(["active", "hold", "review", "invited", "candidate"]);
+
+    if (!allowedStatuses.has(status)) {
+      res.status(400).json({ error: "Geçerli başvuru durumu zorunlu." });
+      return;
+    }
+
+    const customer = get(db, "select * from customer_profiles where id = ?", [id]);
+    if (!customer) {
+      res.status(404).json({ error: "Başvuru bulunamadı." });
+      return;
+    }
+
+    run(
+      db,
+      `update customer_profiles
+       set membership_status = ?, membership_level = ?, updated_at = datetime('now')
+       where id = ?`,
+      [status, status === "active" ? "atelier" : "candidate", id]
+    );
+
+    const application = get(
+      db,
+      `select
+        id,
+        full_name as name,
+        phone,
+        membership_status as statusCode,
+        invite_code as inviteCode,
+        private_notes as privateNotes,
+        created_at as createdAt
+      from customer_profiles
+      where id = ?`,
+      [id]
+    );
+    res.json(customerApplicationFromRow(application));
   });
 
   app.get("/api/staff", (req, res) => {

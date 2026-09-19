@@ -58,3 +58,36 @@ insert or ignore into staff_profiles (
   ((select id from users where email = 'yardimci1@berberim.local'), 'assistant', '10:00-18:00', 'Aktif', 24000, 0, 0, 0),
   ((select id from users where email = 'yardimci2@berberim.local'), 'assistant', '11:00-19:00', 'Aktif', 24000, 0, 0, 0),
   ((select id from users where email = 'yardimci3@berberim.local'), 'assistant', '13:00-21:00', 'Aktif', 24000, 0, 0, 0);
+
+insert into customer_profiles (
+  full_name,
+  phone,
+  membership_level,
+  membership_status,
+  invite_code,
+  private_notes
+)
+select 'Mert A.', 'demo-mert-a', 'candidate', 'invited', 'BC-ATELIER-09', '{"intent":"Düzenli saç ve sakal bakımı","note":"Akşam saatlerini tercih ediyor."}'
+where not exists (select 1 from customer_profiles where phone = 'demo-mert-a');
+
+insert into customer_profiles (
+  full_name,
+  phone,
+  membership_level,
+  membership_status,
+  invite_code,
+  private_notes
+)
+select 'Emre K.', 'demo-emre-k', 'candidate', 'review', null, '{"intent":"Manikür ve pedikür bakımı","note":"Bakım uzmanı uygunluğu bekleniyor."}'
+where not exists (select 1 from customer_profiles where phone = 'demo-emre-k');
+
+insert into customer_profiles (
+  full_name,
+  phone,
+  membership_level,
+  membership_status,
+  invite_code,
+  private_notes
+)
+select 'Can B.', 'demo-can-b', 'candidate', 'candidate', null, '{"intent":"Sakal tasarım ve manikür","note":"Davet kodu yok."}'
+where not exists (select 1 from customer_profiles where phone = 'demo-can-b');
