@@ -621,7 +621,31 @@
                 <strong>Yalnızca İsmail Gül görür.</strong>
                 <span>Çalışan ekranında diğer personelin maaşı, borcu, özel notu ve işletme net kasası görünmez.</span>
               </div>
-              <div class="ledger-table" aria-label="Personel hesap tablosu">
+              <form class="staff-finance-form" id="staffFinanceForm">
+                <label>
+                  Personel
+                  <select name="financeStaff" id="financeStaffSelect"></select>
+                </label>
+                <label>
+                  Hareket
+                  <select name="financeType">
+                    <option value="advance">Avans / borç</option>
+                    <option value="payment">Ödeme</option>
+                    <option value="salary_adjustment">Maaş düzeltme</option>
+                    <option value="bonus">Prim / ek hak ediş</option>
+                  </select>
+                </label>
+                <label>
+                  Tutar
+                  <input name="financeAmount" type="number" min="0" value="1000" />
+                </label>
+                <label>
+                  Not
+                  <input name="financeNote" placeholder="Örn. haftalık avans" />
+                </label>
+                <button class="button button-secondary" type="submit">Hesaba işle</button>
+              </form>
+              <div class="ledger-table" id="staffFinanceTable" aria-label="Personel hesap tablosu">
                 <div class="ledger-head">
                   <span>Personel</span>
                   <span>Rol</span>

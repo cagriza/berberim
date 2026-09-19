@@ -35,11 +35,14 @@ const ownerStaffForm = document.querySelector("#ownerStaffForm");
 const checkoutForm = document.querySelector("#checkoutForm");
 const stockItemForm = document.querySelector("#stockItemForm");
 const stockMovementForm = document.querySelector("#stockMovementForm");
+const staffFinanceForm = document.querySelector("#staffFinanceForm");
 const editableStaffList = document.querySelector("#editableStaffList");
 const editablePriceList = document.querySelector("#editablePriceList");
 const editableStockList = document.querySelector("#editableStockList");
 const movementStockSelect = document.querySelector("#movementStockSelect");
 const stockMovementList = document.querySelector("#stockMovementList");
+const financeStaffSelect = document.querySelector("#financeStaffSelect");
+const staffFinanceTable = document.querySelector("#staffFinanceTable");
 const specialPriceCustomers = document.querySelector("#specialPriceCustomers");
 const splitPreview = document.querySelector("#splitPreview");
 const checkoutFeedback = document.querySelector("#checkoutFeedback");
@@ -56,6 +59,7 @@ const storageKeys = {
   metrics: "berberimClub.metrics.v2",
   prices: "berberimClub.prices",
   staff: "berberimClub.staff.v2",
+  staffFinance: "berberimClub.staffFinance.v1",
   specialPrices: "berberimClub.specialPrices.v1",
   stock: "berberimClub.stock.v1",
   stockMovements: "berberimClub.stockMovements.v1",
@@ -70,6 +74,39 @@ const seedStaff = [
   { name: "Yardımcı 1", role: "Destek", shift: "10:00-18:00", status: "Aktif" },
   { name: "Yardımcı 2", role: "Destek", shift: "11:00-19:00", status: "Aktif" },
   { name: "Yardımcı 3", role: "Destek", shift: "13:00-21:00", status: "Aktif" },
+];
+
+const seedStaffFinance = [
+  {
+    id: 2,
+    name: "Faruk Usta",
+    role: "Usta",
+    salaryAmount: 38000,
+    earnedAmount: 12450,
+    advanceDebt: 3000,
+    paidAmount: 0,
+    remainingAmount: 9450,
+  },
+  {
+    id: 3,
+    name: "Ali Usta",
+    role: "Usta",
+    salaryAmount: 35000,
+    earnedAmount: 8750,
+    advanceDebt: 0,
+    paidAmount: 0,
+    remainingAmount: 8750,
+  },
+  {
+    id: 4,
+    name: "Elif Zeren",
+    role: "Bakım uzmanı",
+    salaryAmount: 32000,
+    earnedAmount: 6200,
+    advanceDebt: 1500,
+    paidAmount: 0,
+    remainingAmount: 4700,
+  },
 ];
 
 const seedSpecialPrices = [
@@ -257,6 +294,67 @@ async function refreshStaffFromApi({ silent = false } = {}) {
     const fallbackStaff = readJson(storageKeys.staff) || [...seedStaff];
     renderEditableStaff(fallbackStaff);
     if (!silent) showToast("API kapalı olduğu için demo çalışan hafızası kullanılıyor.");
+    return false;
+  }
+}
+
+function normalizeStaffFinance(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    role: row.role,
+    salaryAmount: Number(row.salaryAmount || 0),
+    earnedAmount: Number(row.earnedAmount || 0),
+    advanceDebt: Number(row.advanceDebt || 0),
+    paidAmount: Number(row.paidAmount || 0),
+    remainingAmount: Number(row.remainingAmount || 0),
+  };
+}
+
+function renderStaffFinance(financeRows) {
+  staffFinanceTable.innerHTML = `
+    <div class="ledger-head">
+      <span>Personel</span>
+      <span>Rol</span>
+      <span>Maaş</span>
+      <span>Hak ediş</span>
+      <span>Avans/Borç</span>
+      <span>İçeride kalan</span>
+    </div>
+  `;
+
+  financeStaffSelect.innerHTML = "";
+
+  financeRows.forEach((row) => {
+    const ledgerRow = document.createElement("div");
+    ledgerRow.innerHTML = `
+      <strong>${escapeHtml(row.name)}</strong>
+      <span>${escapeHtml(row.role)}</span>
+      <span>${formatCurrency(row.salaryAmount)}</span>
+      <span>${formatCurrency(row.earnedAmount)}</span>
+      <span>${formatCurrency(row.advanceDebt)}</span>
+      <span>${formatCurrency(row.remainingAmount)}</span>
+    `;
+    staffFinanceTable.append(ledgerRow);
+
+    const option = document.createElement("option");
+    option.value = String(row.id || "");
+    option.textContent = row.name;
+    financeStaffSelect.append(option);
+  });
+}
+
+async function refreshStaffFinanceFromApi({ silent = false } = {}) {
+  try {
+    const financeRows = (await apiRequest("/api/staff-finance")).map(normalizeStaffFinance);
+    saveJson(storageKeys.staffFinance, financeRows);
+    renderStaffFinance(financeRows);
+    if (!silent) showToast("Personel hesapları veritabanından güncellendi.");
+    return true;
+  } catch {
+    const fallbackFinance = readJson(storageKeys.staffFinance) || [...seedStaffFinance];
+    renderStaffFinance(fallbackFinance);
+    if (!silent) showToast("API kapalı olduğu için demo personel hesabı kullanılıyor.");
     return false;
   }
 }
@@ -672,6 +770,47 @@ ownerStaffForm.addEventListener("submit", async (event) => {
   showToast("Çalışan ve vardiya listesi güncellendi.");
 });
 
+staffFinanceForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const data = new FormData(staffFinanceForm);
+  const staffId = Number(data.get("financeStaff") || 0);
+  const movementType = String(data.get("financeType") || "advance");
+  const amount = numberFromForm(data, "financeAmount");
+  const note = String(data.get("financeNote") || "").trim();
+
+  try {
+    await apiRequest(`/api/staff/${staffId}/account-movements`, {
+      method: "POST",
+      body: JSON.stringify({ movementType, amount, note }),
+    });
+    await refreshStaffFinanceFromApi({ silent: true });
+    staffFinanceForm.reset();
+    showToast("Personel hesap hareketi veritabanına işlendi.");
+    return;
+  } catch {
+    showToast("API kapalı. Personel hesap hareketi demo hafızasında gösteriliyor.");
+  }
+
+  const financeRows = readJson(storageKeys.staffFinance) || [...seedStaffFinance];
+  const financeRow = financeRows.find((row) => Number(row.id) === staffId);
+  if (financeRow) {
+    if (movementType === "payment") {
+      financeRow.paidAmount = Number(financeRow.paidAmount || 0) + amount;
+      financeRow.remainingAmount = Number(financeRow.remainingAmount || 0) - amount;
+    } else if (movementType === "bonus" || movementType === "salary_adjustment") {
+      financeRow.earnedAmount = Number(financeRow.earnedAmount || 0) + amount;
+      financeRow.remainingAmount = Number(financeRow.remainingAmount || 0) + amount;
+    } else {
+      financeRow.advanceDebt = Number(financeRow.advanceDebt || 0) + amount;
+      financeRow.remainingAmount = Number(financeRow.remainingAmount || 0) - amount;
+    }
+  }
+
+  saveJson(storageKeys.staffFinance, financeRows);
+  renderStaffFinance(financeRows);
+  staffFinanceForm.reset();
+});
+
 checkoutForm.addEventListener("input", renderSplitPreview);
 checkoutForm.elements.namedItem("checkoutCustomer").addEventListener("change", applySpecialPriceAmount);
 checkoutForm.elements.namedItem("checkoutService").addEventListener("change", applySpecialPriceAmount);
@@ -701,6 +840,7 @@ checkoutForm.addEventListener("submit", async (event) => {
     showToast(
       `${formatCurrency(result.amount)} ${paymentType.toLocaleLowerCase("tr-TR")} ile kasaya geçti. Usta payı ${formatCurrency(result.staffShare)}.`
     );
+    await refreshStaffFinanceFromApi({ silent: true });
     return;
   } catch {
     showToast("API kapalı. Ödeme demo akışında gösteriliyor.");
@@ -875,6 +1015,10 @@ if (savedPrices) applyPrices(savedPrices, true);
 const savedStaff = readJson(storageKeys.staff) || [...seedStaff];
 renderEditableStaff(savedStaff);
 refreshStaffFromApi({ silent: true });
+
+const savedStaffFinance = readJson(storageKeys.staffFinance) || [...seedStaffFinance];
+renderStaffFinance(savedStaffFinance);
+refreshStaffFinanceFromApi({ silent: true });
 
 const savedSpecialPrices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
 renderSpecialPrices(savedSpecialPrices);

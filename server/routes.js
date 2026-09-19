@@ -215,6 +215,77 @@ export function registerRoutes(app, db) {
     res.json({ ok: true, id: staff.id });
   });
 
+  app.get("/api/staff-finance", (req, res) => {
+    res.json(
+      all(
+        db,
+        `select
+          staff_profiles.id,
+          users.full_name as name,
+          staff_profiles.staff_type as staffType,
+          staff_profiles.salary_amount as salaryAmount,
+          coalesce(earnings.total_earned, 0) as earnedAmount,
+          coalesce(account.advances, 0) as advanceDebt,
+          coalesce(account.payments, 0) as paidAmount,
+          coalesce(account.bonuses, 0) as bonusAmount,
+          (
+            coalesce(earnings.total_earned, 0)
+            + coalesce(account.bonuses, 0)
+            - coalesce(account.advances, 0)
+            - coalesce(account.payments, 0)
+          ) as remainingAmount
+        from staff_profiles
+        join users on users.id = staff_profiles.user_id
+        left join (
+          select staff_id, sum(staff_share) as total_earned
+          from staff_earnings
+          group by staff_id
+        ) earnings on earnings.staff_id = staff_profiles.id
+        left join (
+          select
+            staff_id,
+            sum(case when movement_type in ('advance', 'debt') then amount else 0 end) as advances,
+            sum(case when movement_type = 'payment' then amount else 0 end) as payments,
+            sum(case when movement_type in ('bonus', 'salary_adjustment') then amount else 0 end) as bonuses
+          from staff_account_movements
+          group by staff_id
+        ) account on account.staff_id = staff_profiles.id
+        where users.status = 'active'
+        order by staff_profiles.id`
+      ).map((row) => ({
+        ...row,
+        role: staffTypeLabel(row.staffType),
+      }))
+    );
+  });
+
+  app.post("/api/staff/:id/account-movements", (req, res) => {
+    const staff = get(db, "select * from staff_profiles where id = ?", [Number(req.params.id)]);
+    if (!staff) {
+      res.status(404).json({ error: "Çalışan bulunamadı." });
+      return;
+    }
+
+    const allowedTypes = new Set(["advance", "debt", "payment", "bonus", "salary_adjustment"]);
+    const movementType = String(req.body.movementType || "advance");
+    const amount = parseAmount(req.body.amount);
+    const note = String(req.body.note || "").trim();
+
+    if (!allowedTypes.has(movementType) || amount <= 0) {
+      res.status(400).json({ error: "Geçerli hareket tipi ve tutar zorunlu." });
+      return;
+    }
+
+    const result = run(
+      db,
+      `insert into staff_account_movements (staff_id, movement_type, amount, note)
+       values (?, ?, ?, ?)`,
+      [staff.id, movementType, amount, note]
+    );
+
+    res.status(201).json({ id: result.lastInsertRowid, staffId: staff.id, movementType, amount, note });
+  });
+
   app.get("/api/special-prices", (req, res) => {
     res.json(
       all(

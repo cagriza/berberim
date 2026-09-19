@@ -1090,7 +1090,8 @@ textarea:focus {
 }
 
 .special-price-form,
-.stock-form {
+.stock-form,
+.staff-finance-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(120px, 0.55fr) minmax(0, 1fr) auto;
   gap: 12px;
@@ -1110,7 +1111,8 @@ textarea:focus {
 }
 
 .special-price-form label,
-.stock-form label {
+.stock-form label,
+.staff-finance-form label {
   display: grid;
   gap: 8px;
   min-width: 0;
@@ -1119,7 +1121,9 @@ textarea:focus {
 
 .special-price-form input,
 .stock-form input,
-.stock-form select {
+.stock-form select,
+.staff-finance-form input,
+.staff-finance-form select {
   min-height: 44px;
 }
 
@@ -1130,7 +1134,8 @@ textarea:focus {
 
 .staff-form .button,
 .special-price-form .button,
-.stock-form .button {
+.stock-form .button,
+.staff-finance-form .button {
   min-height: 44px;
   white-space: nowrap;
 }
@@ -1191,6 +1196,7 @@ textarea:focus {
 .ledger-table {
   display: grid;
   gap: 0;
+  margin-top: 18px;
   overflow-x: auto;
 }
 
@@ -1696,6 +1702,7 @@ textarea:focus {
   .staff-form,
   .special-price-form,
   .stock-form,
+  .staff-finance-form,
   .studio {
     grid-template-columns: 1fr;
   }

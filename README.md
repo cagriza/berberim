@@ -58,6 +58,8 @@ http://localhost:3000/api/health
 - `GET /api/staff`
 - `POST /api/staff`
 - `DELETE /api/staff/:id`
+- `GET /api/staff-finance`
+- `POST /api/staff/:id/account-movements`
 - `GET /api/special-prices`
 - `POST /api/special-prices`
 - `DELETE /api/special-prices/:id`
