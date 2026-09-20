@@ -1,0 +1,17 @@
+[Unit]
+Description=Berberim Club API
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/berberim/current
+Environment=NODE_ENV=production
+Environment=PORT=3002
+Environment=BERBERIM_DB_PATH=/opt/berberim/data/berberim.sqlite
+ExecStart=/opt/node-v22/bin/node server/index.js
+Restart=always
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target
