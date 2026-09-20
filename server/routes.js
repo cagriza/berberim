@@ -623,6 +623,7 @@ export function registerRoutes(app, db) {
       });
     });
 
+    const occupiedSlots = new Set(sessionRows.map((row) => `${sessionDateKey(row.startsAt)} ${formatSessionTime(row.startsAt)}`));
     const privateBlocks = [
       { dayIndex: 1, time: "16:00", title: "Private blok", subtitle: "İsmail Gül", meta: "Müşteriye kapalı", kind: "private" },
       { dayIndex: 6, time: "Kapalı", title: "Korunan saat", subtitle: "Private üyeler", meta: "Genel görünmez", kind: "private" },
@@ -631,7 +632,7 @@ export function registerRoutes(app, db) {
       { dayIndex: 2, label: days[2]?.label || "Çar", time: "14:00", service: "El ve ayak bakımı", note: "Bakım uzmanı uygun" },
       { dayIndex: 5, label: days[5]?.label || "Cum", time: "19:30", service: "Saç + manikür + pedikür", note: "Atelier üyeye açıldı" },
       { dayIndex: 6, label: days[6]?.label || "Cmt", time: "11:00", service: "Pedikür kontrolü", note: "Onay bekliyor" },
-    ];
+    ].filter((slot) => !occupiedSlots.has(`${days[slot.dayIndex]?.key} ${slot.time}`));
 
     privateBlocks.forEach((block) => {
       days[block.dayIndex]?.items.push(block);
