@@ -34,6 +34,9 @@ const openSlotButton = document.querySelector("#openSlotButton");
 const capacityText = document.querySelector("#capacityText");
 const capacityBar = document.querySelector("#capacityBar");
 const capacityNote = document.querySelector("#capacityNote");
+const calendarSummary = document.querySelector("#calendarSummary");
+const calendarDays = document.querySelector("#calendarDays");
+const calendarOpenSlots = document.querySelector("#calendarOpenSlots");
 const visitFlow = document.querySelector("#visitFlow");
 const exceptionList = document.querySelector("#exceptionList");
 const seedExceptionsButton = document.querySelector("#seedExceptionsButton");
@@ -103,6 +106,7 @@ const storageKeys = {
   staffFinance: "berberimClub.staffFinance.v1",
   cashDetails: "berberimClub.cashDetails.v1",
   sessions: "berberimClub.sessions.v1",
+  calendar: "berberimClub.calendar.v1",
   capacity: "berberimClub.capacity.v1",
   exceptions: "berberimClub.exceptions.v1",
   floorStatus: "berberimClub.floorStatus.v1",
@@ -223,6 +227,43 @@ const seedSessions = [
   { startsAt: "2026-09-25 20:15:00", customerName: "Mert A.", serviceSummary: "Saç + sakal" },
   { startsAt: "2026-09-25 21:00:00", customerName: "Private blok", serviceSummary: "Korunan saat" },
 ];
+
+const seedCalendar = {
+  summary: { plannedSessions: 5, privateBlocks: 2, openSlots: 3 },
+  days: [
+    {
+      label: "Pzt",
+      date: "21 Eyl",
+      items: [
+        { time: "10:30", title: "Faruk Usta", subtitle: "Saç + sakal", meta: "Mert A. · Usta", kind: "session" },
+        { time: "16:00", title: "Private blok", subtitle: "İsmail Gül", meta: "Müşteriye kapalı", kind: "private" },
+      ],
+    },
+    {
+      label: "Sal",
+      date: "22 Eyl",
+      items: [{ time: "14:00", title: "Açılabilir slot", subtitle: "El-ayak bakımı", meta: "Elif Zeren uygun", kind: "open" }],
+    },
+    { label: "Çar", date: "23 Eyl", items: [] },
+    {
+      label: "Per",
+      date: "24 Eyl",
+      items: [{ time: "18:30", title: "Ali Usta", subtitle: "Sakal tasarım", meta: "Onaylı üye", kind: "session" }],
+    },
+    {
+      label: "Cum",
+      date: "25 Eyl",
+      items: [{ time: "19:30", title: "Çağrı Z.", subtitle: "Saç + manikür + pedikür", meta: "1 usta + 1 bakım uzmanı", kind: "session" }],
+    },
+    { label: "Cmt", date: "26 Eyl", items: [{ time: "11:00", title: "Açılabilir slot", subtitle: "Pedikür kontrolü", meta: "Müşteriye seçili açılır", kind: "open" }] },
+    { label: "Paz", date: "27 Eyl", items: [{ time: "Kapalı", title: "Korunan saat", subtitle: "Private üyeler", meta: "Genel görünmez", kind: "private" }] },
+  ],
+  openSlots: [
+    { label: "Salı", time: "14:00", service: "El ve ayak bakımı", note: "Bakım uzmanı uygun" },
+    { label: "Cuma", time: "19:30", service: "Saç + manikür + pedikür", note: "Atelier üyeye açıldı" },
+    { label: "Cumartesi", time: "11:00", service: "Pedikür kontrolü", note: "Onay bekliyor" },
+  ],
+};
 
 const seedCapacity = {
   usedSessions: 5,
@@ -966,6 +1007,86 @@ async function refreshSessionsFromApi({ silent = false } = {}) {
   }
 }
 
+function normalizeCalendar(calendar) {
+  return {
+    summary: {
+      plannedSessions: Number(calendar?.summary?.plannedSessions || 0),
+      privateBlocks: Number(calendar?.summary?.privateBlocks || 0),
+      openSlots: Number(calendar?.summary?.openSlots || 0),
+    },
+    days: Array.isArray(calendar?.days) ? calendar.days : [],
+    openSlots: Array.isArray(calendar?.openSlots) ? calendar.openSlots : [],
+  };
+}
+
+function renderCalendar(calendar) {
+  const normalized = normalizeCalendar(calendar);
+  calendarSummary.innerHTML = `
+    <div><strong>${normalized.summary.plannedSessions}</strong><span>Planlı seans</span></div>
+    <div><strong>${normalized.summary.privateBlocks}</strong><span>Korunan saat</span></div>
+    <div><strong>${normalized.summary.openSlots}</strong><span>Açılabilir slot</span></div>
+  `;
+
+  calendarDays.innerHTML = "";
+  normalized.days.forEach((day) => {
+    const dayCard = document.createElement("section");
+    dayCard.className = "calendar-day";
+    const items = Array.isArray(day.items) ? day.items : [];
+    dayCard.innerHTML = `
+      <header>
+        <strong>${escapeHtml(day.label || "Gün")}</strong>
+        <time>${escapeHtml(day.date || "")}</time>
+      </header>
+      ${
+        items.length
+          ? items
+              .map(
+                (item) => `
+                  <article class="calendar-item" data-kind="${escapeHtml(item.kind || "session")}">
+                    <span>${escapeHtml(item.time || "")}</span>
+                    <strong>${escapeHtml(item.title || "Seans")}</strong>
+                    <small>${escapeHtml(item.subtitle || "")}</small>
+                    <small>${escapeHtml(item.meta || "")}</small>
+                  </article>
+                `
+              )
+              .join("")
+          : '<article class="calendar-item" data-kind="open"><strong>Sakin gün</strong><small>Uygunluk işletme tarafından açılır.</small></article>'
+      }
+    `;
+    calendarDays.append(dayCard);
+  });
+
+  calendarOpenSlots.innerHTML = "";
+  normalized.openSlots.forEach((slot) => {
+    const button = document.createElement("button");
+    button.className = "slot";
+    button.type = "button";
+    button.innerHTML = `
+      <span>${escapeHtml(slot.label || "Gün")}</span>
+      <strong>${escapeHtml(slot.time || "")}</strong>
+      <small>${escapeHtml(slot.service || "Seçili bakım")}</small>
+      <small>${escapeHtml(slot.note || "Onaylı üyeye açılır")}</small>
+    `;
+    calendarOpenSlots.append(button);
+  });
+}
+
+async function refreshCalendarFromApi({ silent = false } = {}) {
+  try {
+    const calendar = normalizeCalendar(await apiRequest("/api/calendar/week"));
+    saveJson(storageKeys.calendar, calendar);
+    renderCalendar(calendar);
+    if (!silent) showToast("Takvim canlı veriden güncellendi.");
+    return true;
+  } catch {
+    const fallbackCalendar = readJson(storageKeys.calendar) || seedCalendar;
+    renderCalendar(fallbackCalendar);
+    if (!silent) showToast("API kapalı olduğu için demo takvim kullanılıyor.");
+    return false;
+  }
+}
+
 function normalizeCapacity(capacity) {
   const maxSessions = Number(capacity.maxSessions || 8);
   const usedSessions = Number(capacity.usedSessions || 0);
@@ -1359,6 +1480,7 @@ openSlotButton.addEventListener("click", async () => {
     await refreshMemberCardsFromApi({ silent: true });
     await refreshServiceBreakdownFromApi({ silent: true });
     await refreshCapacityFromApi({ silent: true });
+    await refreshCalendarFromApi({ silent: true });
     slotFeedback.textContent = `${session.customerName} için ${session.serviceSummary} seansı veritabanına açıldı.`;
     showToast("Kontrollü seans veritabanına açıldı.");
     return;
@@ -1400,6 +1522,19 @@ openSlotButton.addEventListener("click", async () => {
   floorStatus.inside += 1;
   saveJson(storageKeys.floorStatus, floorStatus);
   renderFloorStatus(floorStatus);
+  const calendar = normalizeCalendar(readJson(storageKeys.calendar) || seedCalendar);
+  calendar.summary.plannedSessions += 1;
+  if (calendar.days[4]?.items) {
+    calendar.days[4].items.unshift({
+      time: "19:30",
+      title: "Çağrı Z.",
+      subtitle: "Saç + manikür + pedikür",
+      meta: "Demo hafızasında açıldı",
+      kind: "session",
+    });
+  }
+  saveJson(storageKeys.calendar, calendar);
+  renderCalendar(calendar);
   slotFeedback.textContent =
     "Cuma 19:30 saç, manikür ve pedikür seansı Atelier üyelerine açıldı. Sistem 115 dk ve 2 uzman ihtiyacıyla planladı.";
   showToast("Kontrollü seans erişimi güncellendi.");
@@ -1904,6 +2039,10 @@ refreshCashDetailsFromApi({ silent: true });
 const savedSessions = readJson(storageKeys.sessions) || [...seedSessions];
 renderSessions(savedSessions);
 refreshSessionsFromApi({ silent: true });
+
+const savedCalendar = readJson(storageKeys.calendar) || seedCalendar;
+renderCalendar(savedCalendar);
+refreshCalendarFromApi({ silent: true });
 
 const savedCapacity = readJson(storageKeys.capacity) || seedCapacity;
 renderCapacity(savedCapacity);

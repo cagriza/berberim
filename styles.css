@@ -459,6 +459,10 @@ h1 {
   margin-bottom: clamp(28px, 5vw, 52px);
 }
 
+.compact-heading {
+  margin-bottom: 22px;
+}
+
 .membership-grid,
 .ops-layout {
   display: grid;
@@ -1503,6 +1507,115 @@ textarea:focus {
   color: var(--muted);
 }
 
+.calendar-panel {
+  margin: 22px 0;
+}
+
+.calendar-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.55fr);
+  gap: 20px;
+}
+
+.calendar-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.calendar-summary div,
+.calendar-day,
+.calendar-item {
+  border: 1px solid rgba(246, 239, 229, 0.1);
+  border-radius: 8px;
+  background: rgba(246, 239, 229, 0.045);
+}
+
+.calendar-summary div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.calendar-summary strong {
+  font-size: 1.35rem;
+}
+
+.calendar-summary span,
+.calendar-day time,
+.calendar-item span,
+.calendar-item small,
+.member-slot-list small {
+  color: var(--muted);
+}
+
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(104px, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.calendar-day {
+  min-height: 260px;
+  padding: 10px;
+}
+
+.calendar-day header {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.calendar-day strong {
+  font-size: 0.95rem;
+}
+
+.calendar-day time {
+  font-size: 0.78rem;
+}
+
+.calendar-item {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 8px;
+  padding: 9px;
+  border-left: 3px solid var(--accent);
+}
+
+.calendar-item strong {
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.calendar-item span,
+.calendar-item small {
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.calendar-item[data-kind="private"] {
+  border-left-color: #c9a35b;
+  background: rgba(201, 163, 91, 0.1);
+}
+
+.calendar-item[data-kind="open"] {
+  border-left-color: #71c6a3;
+  background: rgba(113, 198, 163, 0.1);
+}
+
+.calendar-item[data-kind="session"] {
+  border-left-color: #d86d4c;
+  background: rgba(216, 109, 76, 0.1);
+}
+
+.member-slot-list {
+  display: grid;
+  gap: 10px;
+}
+
 .meter-track {
   height: 8px;
   overflow: hidden;
@@ -1798,6 +1911,7 @@ textarea:focus {
   .ops-layout,
   .ops-insights,
   .ops-flow,
+  .calendar-layout,
   .live-floor,
   .role-access-grid,
   .finance-layout,

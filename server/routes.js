@@ -228,6 +228,38 @@ function demoUserPayload(user) {
   };
 }
 
+function calendarDateParts(date) {
+  const parts = new Intl.DateTimeFormat("tr-TR", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type) => parts.find((item) => item.type === type)?.value || "";
+  return {
+    label: new Intl.DateTimeFormat("tr-TR", { timeZone: "Europe/Istanbul", weekday: "short" }).format(date),
+    date: new Intl.DateTimeFormat("tr-TR", { timeZone: "Europe/Istanbul", day: "numeric", month: "short" }).format(date),
+    key: `${part("year")}-${part("month")}-${part("day")}`,
+  };
+}
+
+function parseSessionDate(value) {
+  if (!value) return null;
+  const normalized = String(value).replace(" ", "T");
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatSessionTime(value) {
+  if (!value) return "Saat yok";
+  const match = String(value).match(/\b(\d{2}:\d{2})/);
+  return match ? match[1] : value;
+}
+
+function sessionDateKey(value) {
+  return String(value || "").slice(0, 10);
+}
+
 export function registerRoutes(app, db) {
   app.get("/api/health", (req, res) => {
     const tableCount = get(db, "select count(*) as count from sqlite_master where type = 'table'");
@@ -544,6 +576,85 @@ export function registerRoutes(app, db) {
         limit 12`
       )
     );
+  });
+
+  app.get("/api/calendar/week", (req, res) => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const days = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      return { ...calendarDateParts(date), items: [] };
+    });
+    const byKey = new Map(days.map((day) => [day.key, day]));
+
+    const sessionRows = all(
+      db,
+      `select
+        service_sessions.id,
+        service_sessions.starts_at as startsAt,
+        service_sessions.status,
+        customer_profiles.full_name as customerName,
+        users.full_name as staffName,
+        roles.code as roleCode,
+        coalesce(group_concat(services.name, ' + '), service_sessions.note) as serviceSummary
+      from service_sessions
+      join customer_profiles on customer_profiles.id = service_sessions.customer_id
+      left join staff_profiles on staff_profiles.id = service_sessions.primary_staff_id
+      left join users on users.id = staff_profiles.user_id
+      left join roles on roles.id = users.role_id
+      left join service_session_items on service_session_items.session_id = service_sessions.id
+      left join services on services.id = service_session_items.service_id
+      where service_sessions.status in ('planned', 'open', 'in_progress', 'completed')
+      group by service_sessions.id
+      order by service_sessions.starts_at is null, service_sessions.starts_at, service_sessions.id
+      limit 40`
+    );
+
+    sessionRows.forEach((row) => {
+      const key = sessionDateKey(row.startsAt);
+      const targetDay = byKey.get(key) || days[days.length - 1];
+      targetDay.items.push({
+        time: formatSessionTime(row.startsAt),
+        title: row.customerName,
+        subtitle: row.serviceSummary || "Bakım seansı",
+        meta: `${row.staffName || "Usta atanmadı"} · ${statusText(row.status)}`,
+        kind: "session",
+      });
+    });
+
+    const privateBlocks = [
+      { dayIndex: 1, time: "16:00", title: "Private blok", subtitle: "İsmail Gül", meta: "Müşteriye kapalı", kind: "private" },
+      { dayIndex: 6, time: "Kapalı", title: "Korunan saat", subtitle: "Private üyeler", meta: "Genel görünmez", kind: "private" },
+    ];
+    const openSlots = [
+      { dayIndex: 2, label: days[2]?.label || "Çar", time: "14:00", service: "El ve ayak bakımı", note: "Bakım uzmanı uygun" },
+      { dayIndex: 5, label: days[5]?.label || "Cum", time: "19:30", service: "Saç + manikür + pedikür", note: "Atelier üyeye açıldı" },
+      { dayIndex: 6, label: days[6]?.label || "Cmt", time: "11:00", service: "Pedikür kontrolü", note: "Onay bekliyor" },
+    ];
+
+    privateBlocks.forEach((block) => {
+      days[block.dayIndex]?.items.push(block);
+    });
+    openSlots.forEach((slot) => {
+      days[slot.dayIndex]?.items.push({
+        time: slot.time,
+        title: "Açılabilir slot",
+        subtitle: slot.service,
+        meta: slot.note,
+        kind: "open",
+      });
+    });
+
+    res.json({
+      summary: {
+        plannedSessions: sessionRows.length,
+        privateBlocks: privateBlocks.length,
+        openSlots: openSlots.length,
+      },
+      days,
+      openSlots: openSlots.map(({ label, time, service, note }) => ({ label, time, service, note })),
+    });
   });
 
   app.get("/api/member-cards/today", (req, res) => {

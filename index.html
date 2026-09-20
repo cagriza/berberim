@@ -827,6 +827,40 @@
               <p class="microcopy" id="slotFeedback">Seanslar örnek veriyle gösteriliyor.</p>
             </article>
           </div>
+          <section class="calendar-panel" aria-label="Kontrollü seans takvimi" data-demo-scope="owner admin master customer">
+            <div class="section-heading compact-heading">
+              <p class="eyebrow">Takvim</p>
+              <h2>Herkese açık randevu değil; içeriden yönetilen kontrollü seans planı.</h2>
+            </div>
+            <div class="calendar-layout">
+              <article class="panel" data-demo-scope="owner admin master">
+                <div class="panel-heading">
+                  <span class="panel-kicker">Haftalık salon planı</span>
+                  <h3>Usta, uzman ve private bloklar</h3>
+                </div>
+                <div class="calendar-summary" id="calendarSummary">
+                  <div><strong>5</strong><span>Planlı seans</span></div>
+                  <div><strong>2</strong><span>Korunan saat</span></div>
+                  <div><strong>3</strong><span>Açılabilir slot</span></div>
+                </div>
+                <div class="calendar-days" id="calendarDays" aria-label="Haftalık takvim günleri"></div>
+              </article>
+              <article class="panel panel-dark" data-demo-scope="customer owner admin">
+                <div class="panel-heading">
+                  <span class="panel-kicker">Üyeye açılan saatler</span>
+                  <h3>Müşteri yalnızca seçili saatleri görür</h3>
+                </div>
+                <div class="member-slot-list" id="calendarOpenSlots">
+                  <button class="slot active" type="button">
+                    <span>Cuma</span>
+                    <strong>19:30</strong>
+                    <small>Saç + manikür + pedikür</small>
+                  </button>
+                </div>
+                <p class="microcopy">Patron veya admin açmadan müşteri tüm boş saatleri göremez.</p>
+              </article>
+            </div>
+          </section>
           <div class="ops-insights" aria-label="Günlük hizmet ve ekip kırılımı">
             <article class="panel" data-demo-scope="owner">
               <div class="panel-heading">

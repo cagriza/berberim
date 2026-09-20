@@ -71,6 +71,7 @@ Canlı yayında `berber.cagriza.com/api/*` istekleri Node.js servisine, diğer i
 - `POST /api/applications`
 - `PATCH /api/applications/:id/status`
 - `GET /api/sessions/upcoming`
+- `GET /api/calendar/week`
 - `POST /api/sessions/open-demo`
 - `GET /api/sessions/exceptions`
 - `POST /api/sessions/exceptions/demo`
