@@ -41,6 +41,7 @@ const memberQuickList = document.querySelector("#memberQuickList");
 const copyInviteButton = document.querySelector("#copyInviteButton");
 const demoLoginForm = document.querySelector("#demoLoginForm");
 const demoUserSelect = document.querySelector("#demoUserSelect");
+const loginSessionState = document.querySelector("#loginSessionState");
 const currentAccessRole = document.querySelector("#currentAccessRole");
 const currentAccessName = document.querySelector("#currentAccessName");
 const currentAccessScope = document.querySelector("#currentAccessScope");
@@ -96,6 +97,7 @@ const storageKeys = {
   prices: "berberimClub.prices",
   demoUsers: "berberimClub.demoUsers.v1",
   activeDemoUser: "berberimClub.activeDemoUser.v1",
+  activeSession: "berberimClub.activeSession.v1",
   applications: "berberimClub.applications.v1",
   staff: "berberimClub.staff.v2",
   staffFinance: "berberimClub.staffFinance.v1",
@@ -349,6 +351,14 @@ function readJson(key) {
   }
 }
 
+function removeJson(key) {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Demo storage can be unavailable in strict browser modes.
+  }
+}
+
 async function apiRequest(path, options = {}) {
   const response = await fetch(`${apiBase}${path}`, {
     headers: {
@@ -566,6 +576,10 @@ function updateAccessCard(user) {
   currentAccessScope.textContent = user.accessNote;
 }
 
+function updateLoginSessionState(message) {
+  if (loginSessionState) loginSessionState.textContent = message;
+}
+
 function applyDemoUser(user, shouldNotify = true) {
   if (!user) return;
 
@@ -626,6 +640,30 @@ function syncDemoUserWithRole(role) {
   updateAccessCard(user);
   demoUserSelect.value = user.id;
   saveJson(storageKeys.activeDemoUser, user);
+}
+
+async function signInDemoUser(user) {
+  if (!user || user.id === "all") {
+    removeJson(storageKeys.activeSession);
+    applyDemoUser(seedDemoUsers[0]);
+    updateLoginSessionState("Sunum görünümü açık; belirli bir kullanıcı oturumu seçilmedi.");
+    return;
+  }
+
+  try {
+    const session = await apiRequest("/api/auth/demo-login", {
+      method: "POST",
+      body: JSON.stringify({ userId: user.id }),
+    });
+    const signedUser = normalizeDemoUser(session.user);
+    saveJson(storageKeys.activeSession, session);
+    applyDemoUser(signedUser);
+    updateLoginSessionState(`${signedUser.name} için canlı oturum doğrulandı.`);
+  } catch {
+    removeJson(storageKeys.activeSession);
+    applyDemoUser(user);
+    updateLoginSessionState("API kapalı olduğu için demo görünümü yerel olarak açıldı.");
+  }
 }
 
 function applyMetrics(metrics, shouldFillForm = false) {
@@ -1417,11 +1455,11 @@ demoRoleButtons.forEach((button) => {
   });
 });
 
-demoLoginForm.addEventListener("submit", (event) => {
+demoLoginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const users = readJson(storageKeys.demoUsers) || [...seedDemoUsers];
   const selectedUser = users.find((user) => user.id === demoUserSelect.value) || seedDemoUsers[0];
-  applyDemoUser(selectedUser);
+  await signInDemoUser(selectedUser);
   document.querySelector("#roles")?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
@@ -1832,6 +1870,12 @@ const savedDemoUsers = readJson(storageKeys.demoUsers) || [...seedDemoUsers];
 renderDemoUsers(savedDemoUsers);
 const savedDemoUser = readJson(storageKeys.activeDemoUser) || savedDemoUsers[0];
 applyDemoUser(savedDemoUser, false);
+const savedSession = readJson(storageKeys.activeSession);
+updateLoginSessionState(
+  savedSession?.user?.name
+    ? `${savedSession.user.name} için canlı oturum açık.`
+    : "Canlı API açıksa seçilen kullanıcı sunucudan doğrulanır."
+);
 refreshDemoUsersFromApi({ silent: true }).then((users) => {
   const activeUser = readJson(storageKeys.activeDemoUser) || users[0];
   const matchingUser = users.find((user) => user.id === activeUser.id) || activeUser;

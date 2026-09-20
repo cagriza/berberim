@@ -62,6 +62,7 @@ Canlı yayında `berber.cagriza.com/api/*` istekleri Node.js servisine, diğer i
 - `GET /api/health`
 - `GET /api/roles`
 - `GET /api/demo-users`
+- `POST /api/auth/demo-login`
 - `GET /api/services`
 - `GET /api/service-prices`
 - `PUT /api/service-prices`

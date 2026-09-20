@@ -217,6 +217,17 @@ function accessNoteFromRoleCode(roleCode) {
   return notes[roleCode] || "Rolüne uygun ekranlar açık.";
 }
 
+function demoUserPayload(user) {
+  return {
+    id: String(user.id),
+    name: user.name,
+    roleCode: user.roleCode,
+    roleName: roleNameFromRoleCode(user.roleCode, user.roleName),
+    demoRole: demoRoleFromRoleCode(user.roleCode),
+    accessNote: accessNoteFromRoleCode(user.roleCode),
+  };
+}
+
 export function registerRoutes(app, db) {
   app.get("/api/health", (req, res) => {
     const tableCount = get(db, "select count(*) as count from sqlite_master where type = 'table'");
@@ -248,12 +259,7 @@ export function registerRoutes(app, db) {
           else 6
         end,
         users.full_name`
-    ).map((user) => ({
-      ...user,
-      roleName: roleNameFromRoleCode(user.roleCode, user.roleName),
-      demoRole: demoRoleFromRoleCode(user.roleCode),
-      accessNote: accessNoteFromRoleCode(user.roleCode),
-    }));
+    ).map(demoUserPayload);
 
     if (!users.some((user) => user.roleCode === "admin")) {
       users.splice(1, 0, {
@@ -278,6 +284,34 @@ export function registerRoutes(app, db) {
     }
 
     res.json(users);
+  });
+
+  app.post("/api/auth/demo-login", (req, res) => {
+    const userId = Number(req.body?.userId || 0);
+    const user = get(
+      db,
+      `select
+        users.id,
+        users.full_name as name,
+        roles.code as roleCode,
+        roles.name as roleName
+      from users
+      join roles on roles.id = users.role_id
+      where users.id = ? and users.status = 'active'
+      limit 1`,
+      [userId]
+    );
+
+    if (!user) {
+      res.status(404).json({ error: "Aktif kullanıcı bulunamadı." });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      signedAt: new Date().toISOString(),
+      user: demoUserPayload(user),
+    });
   });
 
   app.get("/api/services", (req, res) => {
