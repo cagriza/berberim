@@ -42,6 +42,11 @@ const exceptionList = document.querySelector("#exceptionList");
 const seedExceptionsButton = document.querySelector("#seedExceptionsButton");
 const memberQuickList = document.querySelector("#memberQuickList");
 const copyInviteButton = document.querySelector("#copyInviteButton");
+const loginGateForm = document.querySelector("#loginGateForm");
+const loginGateUserSelect = document.querySelector("#loginGateUserSelect");
+const loginGatePin = document.querySelector("#loginGatePin");
+const loginGateState = document.querySelector("#loginGateState");
+const logoutButton = document.querySelector("#logoutButton");
 const demoLoginForm = document.querySelector("#demoLoginForm");
 const demoUserSelect = document.querySelector("#demoUserSelect");
 const demoUserPin = document.querySelector("#demoUserPin");
@@ -606,12 +611,17 @@ function normalizeDemoUser(user) {
 
 function renderDemoUsers(users) {
   demoUserSelect.innerHTML = "";
+  if (loginGateUserSelect) loginGateUserSelect.innerHTML = "";
 
   users.forEach((user) => {
     const option = document.createElement("option");
     option.value = user.id;
     option.textContent = `${user.name} · ${user.roleName}`;
     demoUserSelect.append(option);
+
+    if (loginGateUserSelect && user.id !== "all") {
+      loginGateUserSelect.append(option.cloneNode(true));
+    }
   });
 }
 
@@ -623,13 +633,20 @@ function updateAccessCard(user) {
 
 function updateLoginSessionState(message) {
   if (loginSessionState) loginSessionState.textContent = message;
+  if (loginGateState) loginGateState.textContent = message;
+}
+
+function setAuthenticated(isAuthenticated) {
+  document.body.dataset.authenticated = String(Boolean(isAuthenticated));
 }
 
 function applyDemoUser(user, shouldNotify = true) {
   if (!user) return;
 
   demoUserSelect.value = user.id;
+  if (loginGateUserSelect && user.id !== "all") loginGateUserSelect.value = user.id;
   if (demoUserPin && shouldNotify) demoUserPin.value = "";
+  if (loginGatePin && shouldNotify) loginGatePin.value = "";
   updateAccessCard(user);
   saveJson(storageKeys.activeDemoUser, user);
   applyDemoRole(user.demoRole, shouldNotify);
@@ -704,11 +721,24 @@ async function signInDemoUser(user, pin) {
     const signedUser = normalizeDemoUser(session.user);
     saveJson(storageKeys.activeSession, session);
     applyDemoUser(signedUser);
+    setAuthenticated(true);
     updateLoginSessionState(`${signedUser.name} için PIN doğrulandı. Oturum açık.`);
+    return true;
   } catch (error) {
     removeJson(storageKeys.activeSession);
     updateLoginSessionState(error.message || "PIN doğrulanamadı.");
+    setAuthenticated(false);
+    return false;
   }
+}
+
+function signOut() {
+  removeJson(storageKeys.activeSession);
+  removeJson(storageKeys.activeDemoUser);
+  applyDemoUser(seedDemoUsers[0], false);
+  setAuthenticated(false);
+  updateLoginSessionState("Oturum kapandı. Devam etmek için PIN ile giriş yap.");
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function applyMetrics(metrics, shouldFillForm = false) {
@@ -1608,6 +1638,29 @@ demoLoginForm.addEventListener("submit", async (event) => {
   document.querySelector("#roles")?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
+loginGateForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const users = readJson(storageKeys.demoUsers) || [...seedDemoUsers];
+  const selectedUser = users.find((user) => user.id === loginGateUserSelect.value);
+  const pin = String(new FormData(loginGateForm).get("pin") || "").trim();
+
+  if (!selectedUser) {
+    updateLoginSessionState("Kullanıcı seçilmedi.");
+    return;
+  }
+
+  if (!pin) {
+    updateLoginSessionState("PIN girilmeden oturum açılamaz.");
+    showToast("PIN gerekli.");
+    return;
+  }
+
+  const signedIn = await signInDemoUser(selectedUser, pin);
+  if (signedIn) document.querySelector("#ops")?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+logoutButton?.addEventListener("click", signOut);
+
 ownerMetricsForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const data = new FormData(ownerMetricsForm);
@@ -2016,10 +2069,11 @@ renderDemoUsers(savedDemoUsers);
 const savedDemoUser = readJson(storageKeys.activeDemoUser) || savedDemoUsers[0];
 applyDemoUser(savedDemoUser, false);
 const savedSession = readJson(storageKeys.activeSession);
+setAuthenticated(Boolean(savedSession?.token));
 updateLoginSessionState(
   savedSession?.user?.name
     ? `${savedSession.user.name} için canlı oturum açık.`
-    : "Canlı API açıksa seçilen kullanıcı sunucudan doğrulanır."
+    : "Demo PIN: patron 1453, admin 2026, Faruk 1111, müşteri 5555."
 );
 refreshDemoUsersFromApi({ silent: true }).then((users) => {
   const activeUser = readJson(storageKeys.activeDemoUser) || users[0];

@@ -338,6 +338,97 @@ h1 {
   display: none !important;
 }
 
+.login-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
+  min-height: 100vh;
+  background: #0f0c0b;
+}
+
+[data-authenticated="true"] .login-gate {
+  display: none;
+}
+
+[data-authenticated="false"] .app-shell {
+  display: none;
+}
+
+.login-visual {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.login-visual img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.92) contrast(1.02);
+}
+
+.login-visual div {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(15, 12, 11, 0.08), rgba(15, 12, 11, 0.88)),
+    linear-gradient(0deg, rgba(15, 12, 11, 0.5), transparent 55%);
+}
+
+.login-card {
+  display: grid;
+  align-content: center;
+  gap: 28px;
+  padding: clamp(28px, 5vw, 70px);
+  background:
+    linear-gradient(145deg, rgba(201, 161, 93, 0.1), rgba(127, 36, 38, 0.08)),
+    #171311;
+}
+
+.login-card h1,
+.login-card p {
+  margin: 0;
+}
+
+.login-card h1 {
+  max-width: 620px;
+  margin: 10px 0 14px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 4vw, 4.4rem);
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+.login-card p:not(.eyebrow) {
+  max-width: 560px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.login-gate-form {
+  display: grid;
+  gap: 14px;
+  max-width: 520px;
+  border: 1px solid rgba(246, 239, 229, 0.14);
+  border-radius: 8px;
+  background: rgba(246, 239, 229, 0.06);
+  padding: 18px;
+}
+
+.login-gate-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.login-gate-form small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .access-preview {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.85fr) minmax(220px, 0.65fr);
@@ -1885,6 +1976,19 @@ textarea:focus {
 }
 
 @media (max-width: 920px) {
+  .login-gate {
+    grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .login-visual {
+    min-height: 34vh;
+  }
+
+  .login-card {
+    align-content: start;
+  }
+
   .desktop-nav {
     display: none;
   }
@@ -1943,6 +2047,14 @@ textarea:focus {
 }
 
 @media (max-width: 560px) {
+  .login-card {
+    padding: 24px 18px;
+  }
+
+  .login-card h1 {
+    font-size: clamp(2.2rem, 12vw, 3.35rem);
+  }
+
   .topbar {
     padding: 14px 16px;
   }

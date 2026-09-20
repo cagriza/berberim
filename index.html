@@ -13,7 +13,38 @@
     <link rel="preload" href="./assets/private-studio-hero.png" as="image" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body data-active-demo-role="all">
+  <body data-active-demo-role="all" data-authenticated="false">
+    <section class="login-gate" id="loginGate" aria-labelledby="login-gate-title">
+      <div class="login-visual" aria-hidden="true">
+        <img src="./assets/private-studio-hero.png" alt="" />
+        <div></div>
+      </div>
+      <div class="login-card">
+        <a class="brand" href="#home" aria-label="Berberim Club">
+          <span class="brand-mark">B</span>
+          <span>Berberim Club</span>
+        </a>
+        <div>
+          <p class="eyebrow">Güvenli giriş</p>
+          <h1 id="login-gate-title">Salon, ekip ve üye ekranına PIN ile gir.</h1>
+          <p>
+            Patron tüm sistemi; usta kendi seansını; müşteri yalnızca kendisine açılan bakım alanını görür.
+          </p>
+        </div>
+        <form class="login-gate-form" id="loginGateForm">
+          <label>
+            Kullanıcı
+            <select name="demoUser" id="loginGateUserSelect"></select>
+          </label>
+          <label>
+            PIN
+            <input name="pin" id="loginGatePin" inputmode="numeric" autocomplete="current-password" placeholder="Örn. 1453" />
+          </label>
+          <button class="button button-primary" type="submit">Giriş yap</button>
+          <small id="loginGateState">Demo PIN: patron 1453, admin 2026, Faruk 1111, müşteri 5555.</small>
+        </form>
+      </div>
+    </section>
     <div class="app-shell">
       <header class="topbar" aria-label="Ana gezinme">
         <a class="brand" href="#home" aria-label="Berberim Club ana ekran">
@@ -29,7 +60,7 @@
           <a href="#roles">Roller</a>
           <a href="#ops">İşletme</a>
         </nav>
-        <a class="topbar-action" href="#apply">Başvuru</a>
+        <button class="topbar-action" type="button" id="logoutButton">Çıkış</button>
       </header>
 
       <main id="home">
