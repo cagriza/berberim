@@ -44,6 +44,7 @@ const memberQuickList = document.querySelector("#memberQuickList");
 const copyInviteButton = document.querySelector("#copyInviteButton");
 const demoLoginForm = document.querySelector("#demoLoginForm");
 const demoUserSelect = document.querySelector("#demoUserSelect");
+const demoUserPin = document.querySelector("#demoUserPin");
 const loginSessionState = document.querySelector("#loginSessionState");
 const currentAccessRole = document.querySelector("#currentAccessRole");
 const currentAccessName = document.querySelector("#currentAccessName");
@@ -401,9 +402,12 @@ function removeJson(key) {
 }
 
 async function apiRequest(path, options = {}) {
+  const activeSession = readJson(storageKeys.activeSession);
+  const authHeaders = activeSession?.token ? { authorization: `Bearer ${activeSession.token}` } : {};
   const response = await fetch(`${apiBase}${path}`, {
     headers: {
       "content-type": "application/json",
+      ...authHeaders,
       ...(options.headers || {}),
     },
     ...options,
@@ -625,6 +629,7 @@ function applyDemoUser(user, shouldNotify = true) {
   if (!user) return;
 
   demoUserSelect.value = user.id;
+  if (demoUserPin && shouldNotify) demoUserPin.value = "";
   updateAccessCard(user);
   saveJson(storageKeys.activeDemoUser, user);
   applyDemoRole(user.demoRole, shouldNotify);
@@ -683,7 +688,7 @@ function syncDemoUserWithRole(role) {
   saveJson(storageKeys.activeDemoUser, user);
 }
 
-async function signInDemoUser(user) {
+async function signInDemoUser(user, pin) {
   if (!user || user.id === "all") {
     removeJson(storageKeys.activeSession);
     applyDemoUser(seedDemoUsers[0]);
@@ -692,18 +697,17 @@ async function signInDemoUser(user) {
   }
 
   try {
-    const session = await apiRequest("/api/auth/demo-login", {
+    const session = await apiRequest("/api/auth/pin-login", {
       method: "POST",
-      body: JSON.stringify({ userId: user.id }),
+      body: JSON.stringify({ userId: user.id, pin }),
     });
     const signedUser = normalizeDemoUser(session.user);
     saveJson(storageKeys.activeSession, session);
     applyDemoUser(signedUser);
-    updateLoginSessionState(`${signedUser.name} için canlı oturum doğrulandı.`);
-  } catch {
+    updateLoginSessionState(`${signedUser.name} için PIN doğrulandı. Oturum açık.`);
+  } catch (error) {
     removeJson(storageKeys.activeSession);
-    applyDemoUser(user);
-    updateLoginSessionState("API kapalı olduğu için demo görünümü yerel olarak açıldı.");
+    updateLoginSessionState(error.message || "PIN doğrulanamadı.");
   }
 }
 
@@ -1594,7 +1598,13 @@ demoLoginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const users = readJson(storageKeys.demoUsers) || [...seedDemoUsers];
   const selectedUser = users.find((user) => user.id === demoUserSelect.value) || seedDemoUsers[0];
-  await signInDemoUser(selectedUser);
+  const pin = String(new FormData(demoLoginForm).get("pin") || "").trim();
+  if (selectedUser.id !== "all" && !pin) {
+    updateLoginSessionState("PIN girilmeden kullanıcı oturumu açılamaz.");
+    showToast("PIN gerekli.");
+    return;
+  }
+  await signInDemoUser(selectedUser, pin);
   document.querySelector("#roles")?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 

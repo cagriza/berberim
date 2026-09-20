@@ -110,8 +110,12 @@
               Demo kullanıcı
               <select name="demoUser" id="demoUserSelect"></select>
             </label>
+            <label>
+              PIN
+              <input name="pin" id="demoUserPin" inputmode="numeric" autocomplete="current-password" placeholder="Örn. 1453" />
+            </label>
             <button class="button button-primary" type="submit">Giriş görünümünü aç</button>
-            <small id="loginSessionState">Canlı API açıksa seçilen kullanıcı sunucudan doğrulanır.</small>
+            <small id="loginSessionState">Demo PIN: patron 1453, admin 2026, Faruk 1111, müşteri 5555.</small>
           </form>
           <div class="active-access-card" aria-live="polite">
             <span id="currentAccessRole">Tüm demo</span>

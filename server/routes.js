@@ -1,4 +1,7 @@
+import { createHash, randomBytes } from "node:crypto";
 import { all, get, run } from "./db.js";
+
+const activeSessions = new Map();
 
 function parseAmount(value) {
   const amount = Number(value);
@@ -228,6 +231,31 @@ function demoUserPayload(user) {
   };
 }
 
+function hashDemoPin(pin) {
+  return `demo-pin:${createHash("sha256").update(String(pin || "")).digest("hex")}`;
+}
+
+function verifyDemoPin(pin, storedHash) {
+  return Boolean(storedHash && storedHash === hashDemoPin(pin));
+}
+
+function createSession(user) {
+  const token = randomBytes(32).toString("hex");
+  const payload = {
+    token,
+    user: demoUserPayload(user),
+    signedAt: new Date().toISOString(),
+  };
+  activeSessions.set(token, payload);
+  return payload;
+}
+
+function readBearerToken(req) {
+  const header = String(req.headers.authorization || "");
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1] : "";
+}
+
 function calendarDateParts(date) {
   const parts = new Intl.DateTimeFormat("tr-TR", {
     timeZone: "Europe/Istanbul",
@@ -293,38 +321,18 @@ export function registerRoutes(app, db) {
         users.full_name`
     ).map(demoUserPayload);
 
-    if (!users.some((user) => user.roleCode === "admin")) {
-      users.splice(1, 0, {
-        id: "admin-demo",
-        name: "Salon Admini",
-        roleCode: "admin",
-        roleName: "Admin",
-        demoRole: "admin",
-        accessNote: "Operasyon, üyelik ve ayar ekranları açık; patron net kasası kapalı.",
-      });
-    }
-
-    if (!users.some((user) => user.roleCode === "customer")) {
-      users.push({
-        id: "customer-demo",
-        name: "Mehmet A.",
-        roleCode: "customer",
-        roleName: "Müşteri",
-        demoRole: "customer",
-        accessNote: "Sadece kendi üyelik, bakım ve seans bilgileri açık.",
-      });
-    }
-
     res.json(users);
   });
 
-  app.post("/api/auth/demo-login", (req, res) => {
+  app.post("/api/auth/pin-login", (req, res) => {
     const userId = Number(req.body?.userId || 0);
+    const pin = String(req.body?.pin || "").trim();
     const user = get(
       db,
       `select
         users.id,
         users.full_name as name,
+        users.password_hash as passwordHash,
         roles.code as roleCode,
         roles.name as roleName
       from users
@@ -339,11 +347,22 @@ export function registerRoutes(app, db) {
       return;
     }
 
-    res.json({
-      ok: true,
-      signedAt: new Date().toISOString(),
-      user: demoUserPayload(user),
-    });
+    if (!verifyDemoPin(pin, user.passwordHash)) {
+      res.status(401).json({ error: "PIN hatalı." });
+      return;
+    }
+
+    res.json({ ok: true, ...createSession(user) });
+  });
+
+  app.get("/api/auth/session", (req, res) => {
+    const session = activeSessions.get(readBearerToken(req));
+    if (!session) {
+      res.status(401).json({ error: "Oturum bulunamadı." });
+      return;
+    }
+
+    res.json({ ok: true, ...session });
   });
 
   app.get("/api/services", (req, res) => {

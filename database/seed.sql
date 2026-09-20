@@ -37,12 +37,33 @@ insert or ignore into stock_items (name, quantity, unit, minimum_quantity, statu
 
 insert or ignore into users (role_id, full_name, email, status) values
   ((select id from roles where code = 'owner'), 'İsmail Gül', 'ismail.gul@berberim.local', 'active'),
+  ((select id from roles where code = 'admin'), 'Salon Admini', 'admin@berberim.local', 'active'),
   ((select id from roles where code = 'master'), 'Faruk Usta', 'faruk.usta@berberim.local', 'active'),
   ((select id from roles where code = 'master'), 'Ali Usta', 'ali.usta@berberim.local', 'active'),
   ((select id from roles where code = 'care_specialist'), 'Elif Zeren', 'elif.zeren@berberim.local', 'active'),
   ((select id from roles where code = 'assistant'), 'Yardımcı 1', 'yardimci1@berberim.local', 'active'),
   ((select id from roles where code = 'assistant'), 'Yardımcı 2', 'yardimci2@berberim.local', 'active'),
-  ((select id from roles where code = 'assistant'), 'Yardımcı 3', 'yardimci3@berberim.local', 'active');
+  ((select id from roles where code = 'assistant'), 'Yardımcı 3', 'yardimci3@berberim.local', 'active'),
+  ((select id from roles where code = 'customer'), 'Mehmet A.', 'mehmet.a@berberim.local', 'active');
+
+update users set password_hash = 'demo-pin:53d2dd2504402eec1bc49ad74daf2e90c352f399842f3d5a3606892213c110fc'
+where email = 'ismail.gul@berberim.local' and password_hash is null;
+update users set password_hash = 'demo-pin:158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab'
+where email = 'admin@berberim.local' and password_hash is null;
+update users set password_hash = 'demo-pin:0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c'
+where email = 'faruk.usta@berberim.local' and password_hash is null;
+update users set password_hash = 'demo-pin:edee29f882543b956620b26d0ee0e7e950399b1c4222f5de05e06425b4c995e9'
+where email = 'ali.usta@berberim.local' and password_hash is null;
+update users set password_hash = 'demo-pin:318aee3fed8c9d040d35a7fc1fa776fb31303833aa2de885354ddf3d44d8fb69'
+where email = 'elif.zeren@berberim.local' and password_hash is null;
+update users set password_hash = 'demo-pin:6346fc1b001a16dd9e1e8b172d33847c99e6016733cb2fde11baf8d107b364ce'
+where email = 'yardimci1@berberim.local' and password_hash is null;
+update users set password_hash = 'demo-pin:3b9f84399baa1776bb6ed76ff4095f29d8e8128039d2d23300a3087733cb0a4c'
+where email = 'yardimci2@berberim.local' and password_hash is null;
+update users set password_hash = 'demo-pin:b74c6293baa71a0cf5aec9b63a98c1f10b2009493e1f8131dcfab0178107a6cc'
+where email = 'yardimci3@berberim.local' and password_hash is null;
+update users set password_hash = 'demo-pin:c1f330d0aff31c1c87403f1e4347bcc21aff7c179908723535f2b31723702525'
+where email = 'mehmet.a@berberim.local' and password_hash is null;
 
 insert or ignore into staff_profiles (
   user_id,
