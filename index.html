@@ -261,6 +261,32 @@
                   <small>Yönetici açmadı</small>
                 </button>
               </div>
+              <form class="booking-request-form" id="customerBookingForm">
+                <div class="panel-heading">
+                  <span class="panel-kicker">Randevu talebi</span>
+                  <h3>Bakım seansı iste</h3>
+                </div>
+                <label>
+                  Hizmet
+                  <select name="serviceName">
+                    <option>İmza kesim</option>
+                    <option>Saç + sakal</option>
+                    <option>Manikür</option>
+                    <option>Pedikür</option>
+                    <option>Saç + manikür + pedikür</option>
+                  </select>
+                </label>
+                <label>
+                  Gün ve saat
+                  <input name="startsAt" type="datetime-local" required />
+                </label>
+                <label>
+                  Not
+                  <input name="note" placeholder="Örn. cuma akşamı uygunum" />
+                </label>
+                <button class="button button-primary" type="submit">Talep oluştur</button>
+                <small id="customerBookingFeedback">Talep patron/admin onayına düşer.</small>
+              </form>
               <div class="care-history" aria-label="Bakım geçmişi">
                 <div class="history-heading">
                   <span class="panel-kicker">Bakım geçmişi</span>
@@ -515,7 +541,14 @@
             <p class="eyebrow">İşletme paneli</p>
             <h2>Usta, günü tek bakışta görür: işlem, hasılat, ekip ve gelen üye trafiği.</h2>
           </div>
-          <div class="daily-dashboard" aria-label="Günlük işletme özeti" data-demo-scope="owner admin">
+          <div class="owner-tabs" data-demo-scope="owner admin" aria-label="Patron ekran bölümleri">
+            <button class="selected" type="button" data-owner-tab="overview">Genel</button>
+            <button type="button" data-owner-tab="customers">Müşteriler</button>
+            <button type="button" data-owner-tab="team">Ekip</button>
+            <button type="button" data-owner-tab="finance">Finans</button>
+            <button type="button" data-owner-tab="catalog">Fiyat / Stok</button>
+          </div>
+          <div class="daily-dashboard" aria-label="Günlük işletme özeti" data-demo-scope="owner admin" data-owner-panel="overview">
             <article>
               <span>Bugünkü işlem</span>
               <strong id="metricTransactions">18</strong>
@@ -537,7 +570,7 @@
               <small id="metricVisitorDetail">18 üye · 5 aday/ziyaretçi</small>
             </article>
           </div>
-          <article class="panel owner-controls" aria-label="İşletme sahibi düzenleme paneli" data-demo-scope="owner">
+          <article class="panel owner-controls" aria-label="İşletme sahibi düzenleme paneli" data-demo-scope="owner" data-owner-panel="overview">
             <div class="panel-heading">
               <span class="panel-kicker">İşletme sahibi</span>
               <h3>Günlük rakamları düzenle</h3>
@@ -570,7 +603,7 @@
               <button class="button button-secondary" type="submit">Günlük özeti güncelle</button>
             </form>
           </article>
-          <article class="panel owner-controls" aria-label="İşletme sahibi fiyat ayarları" data-demo-scope="owner admin">
+          <article class="panel owner-controls" aria-label="İşletme sahibi fiyat ayarları" data-demo-scope="owner admin" data-owner-panel="catalog">
             <div class="panel-heading">
               <span class="panel-kicker">Fiyat ayarları</span>
               <h3>Hizmet ve paket fiyatlarını düzenle</h3>
@@ -607,7 +640,7 @@
               <button class="button button-secondary" type="submit">Fiyatları güncelle</button>
             </form>
           </article>
-          <article class="panel owner-controls" aria-label="Özel müşteri fiyatları" data-demo-scope="owner admin master">
+          <article class="panel owner-controls" aria-label="Özel müşteri fiyatları" data-demo-scope="owner admin master" data-owner-panel="catalog">
             <div class="panel-heading">
               <span class="panel-kicker">Özel fiyat</span>
               <h3>Müşteriye özel tutar tanımla</h3>
@@ -633,7 +666,14 @@
             </form>
             <div class="editable-price-list" id="editablePriceList" aria-label="Özel müşteri fiyat listesi"></div>
           </article>
-          <article class="panel owner-controls" aria-label="İşletme sahibi ekip ayarları" data-demo-scope="owner admin">
+          <article class="panel owner-controls" aria-label="Müşteri yönetimi" data-demo-scope="owner admin" data-owner-panel="customers">
+            <div class="panel-heading">
+              <span class="panel-kicker">Müşteri yönetimi</span>
+              <h3>Üyeleri, durumları ve özel notları düzenle</h3>
+            </div>
+            <div class="customer-management-list" id="customerManagementList" aria-label="Müşteri listesi"></div>
+          </article>
+          <article class="panel owner-controls" aria-label="İşletme sahibi ekip ayarları" data-demo-scope="owner admin" data-owner-panel="team">
             <div class="panel-heading">
               <span class="panel-kicker">Ekip ayarları</span>
               <h3>Çalışan ve vardiya düzenle</h3>
@@ -672,7 +712,7 @@
             <div class="editable-staff-list" id="editableStaffList" aria-label="Düzenlenebilir çalışan listesi"></div>
           </article>
           <div class="finance-layout" aria-label="Patron ve çalışan finans ekranları">
-            <article class="panel panel-dark owner-ledger" data-demo-scope="owner">
+            <article class="panel panel-dark owner-ledger" data-demo-scope="owner" data-owner-panel="finance">
               <div class="panel-heading">
                 <span class="panel-kicker">Patron ekranı</span>
                 <h3>Personel maaş, alacak ve borç takibi</h3>
@@ -807,7 +847,7 @@
                 <div><strong>Üye</strong><span>Müşteri · yalnızca kendi üyelik ve bakım bilgisi</span></div>
               </div>
             </article>
-            <article class="panel panel-dark" data-demo-scope="owner">
+            <article class="panel panel-dark" data-demo-scope="owner" data-owner-panel="finance">
               <div class="panel-heading">
                 <span class="panel-kicker">Patron özeti</span>
                 <h3>Kasa ve kazanç dağılımı</h3>
@@ -821,7 +861,7 @@
             </article>
           </div>
           <div class="ops-layout">
-            <article class="panel" data-demo-scope="admin owner">
+            <article class="panel" data-demo-scope="admin owner" data-owner-panel="customers">
               <div class="panel-heading">
                 <span class="panel-kicker">Kuyruk</span>
                 <h3>Bekleyen başvurular</h3>
@@ -835,7 +875,7 @@
               </div>
               <div class="queue" id="applicationQueue"></div>
             </article>
-            <article class="panel panel-dark" data-demo-scope="admin owner">
+            <article class="panel panel-dark" data-demo-scope="admin owner" data-owner-panel="customers">
               <div class="panel-heading">
                 <span class="panel-kicker">Seans açma</span>
                 <h3>Kontrollü erişim</h3>
@@ -898,7 +938,7 @@
             </div>
           </section>
           <div class="ops-insights" aria-label="Günlük hizmet ve ekip kırılımı">
-            <article class="panel" data-demo-scope="owner">
+            <article class="panel" data-demo-scope="owner" data-owner-panel="overview">
               <div class="panel-heading">
                 <span class="panel-kicker">Hizmet kırılımı</span>
                 <h3>Bugünün setleri</h3>
@@ -925,7 +965,7 @@
             </article>
           </div>
           <div class="ops-flow" aria-label="Kasa ve gün akışı">
-            <article class="panel panel-dark" data-demo-scope="owner">
+            <article class="panel panel-dark" data-demo-scope="owner" data-owner-panel="finance">
               <div class="panel-heading">
                 <span class="panel-kicker">Kasa</span>
                 <h3>Ödeme kırılımı</h3>
@@ -958,7 +998,7 @@
                 <div><span>21:00</span><strong>Private blok</strong><small>Korunan saat</small></div>
               </div>
             </article>
-            <article class="panel" data-demo-scope="owner admin">
+            <article class="panel" data-demo-scope="owner admin" data-owner-panel="overview">
               <div class="panel-heading">
                 <span class="panel-kicker">Takip</span>
                 <h3>İptal ve gelmedi</h3>
@@ -1009,7 +1049,7 @@
             </article>
           </div>
           <div class="stock-panel" aria-label="Stok ve sarf malzeme takibi">
-            <article class="panel" data-demo-scope="owner admin">
+            <article class="panel" data-demo-scope="owner admin" data-owner-panel="catalog">
               <div class="panel-heading">
                 <span class="panel-kicker">Stok</span>
                 <h3>Malzeme listesi</h3>
@@ -1039,7 +1079,7 @@
               </form>
               <div class="stock-list" id="editableStockList" aria-label="Düzenlenebilir stok listesi"></div>
             </article>
-            <article class="panel panel-dark" data-demo-scope="owner admin">
+            <article class="panel panel-dark" data-demo-scope="owner admin" data-owner-panel="catalog">
               <div class="panel-heading">
                 <span class="panel-kicker">Stok hareketi</span>
                 <h3>Giren çıkan malzeme</h3>
@@ -1074,6 +1114,6 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="./app.js?v=82a8e8d-user-management" type="module"></script>
+    <script src="./app.js?v=customer-owner-cleanup" type="module"></script>
   </body>
 </html>

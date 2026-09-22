@@ -100,6 +100,11 @@ const breakdownHaircut = document.querySelector("#breakdownHaircut");
 const breakdownBeard = document.querySelector("#breakdownBeard");
 const breakdownManicure = document.querySelector("#breakdownManicure");
 const breakdownPedicure = document.querySelector("#breakdownPedicure");
+const customerBookingForm = document.querySelector("#customerBookingForm");
+const customerBookingFeedback = document.querySelector("#customerBookingFeedback");
+const customerManagementList = document.querySelector("#customerManagementList");
+const ownerTabButtons = document.querySelectorAll("[data-owner-tab]");
+const ownerPanels = document.querySelectorAll("[data-owner-panel]");
 const priceTargets = document.querySelectorAll("[data-price-target]");
 const storageKeys = {
   metrics: "berberimClub.metrics.v2",
@@ -121,6 +126,8 @@ const storageKeys = {
   specialPrices: "berberimClub.specialPrices.v1",
   stock: "berberimClub.stock.v1",
   stockMovements: "berberimClub.stockMovements.v1",
+  customers: "berberimClub.customers.v1",
+  ownerTab: "berberimClub.ownerTab.v1",
 };
 const apiBase = "";
 
@@ -717,6 +724,8 @@ function applyDemoRole(role, shouldNotify = true) {
     element.dataset.demoHidden = String(!shouldShow);
   });
 
+  applyOwnerTab(readJson(storageKeys.ownerTab) || "overview", false);
+
   if (shouldNotify) {
     const labels = {
       all: "Tüm demo görünümü açıldı.",
@@ -727,6 +736,25 @@ function applyDemoRole(role, shouldNotify = true) {
     };
     showToast(labels[role] || labels.all);
   }
+}
+
+function applyOwnerTab(tab, shouldSave = true) {
+  const role = document.body.dataset.activeDemoRole;
+  const isOwnerSurface = role === "owner" || role === "admin";
+  const activeTab = tab || "overview";
+
+  ownerTabButtons.forEach((button) => {
+    const isSelected = button.dataset.ownerTab === activeTab;
+    button.classList.toggle("selected", isSelected);
+    button.setAttribute("aria-pressed", String(isSelected));
+  });
+
+  ownerPanels.forEach((panel) => {
+    const panelTabs = String(panel.dataset.ownerPanel || "").split(/\s+/);
+    panel.dataset.ownerPanelHidden = String(isOwnerSurface && !panelTabs.includes(activeTab));
+  });
+
+  if (shouldSave) saveJson(storageKeys.ownerTab, activeTab);
 }
 
 function syncDemoUserWithRole(role) {
@@ -755,6 +783,10 @@ async function signInDemoUser(user, pin) {
     applyDemoUser(signedUser);
     setAuthenticated(true);
     focusRoleHome(signedUser.demoRole);
+    if (signedUser.demoRole === "owner" || signedUser.demoRole === "admin") {
+      refreshCustomersFromApi({ silent: true });
+      refreshApplicationsFromApi({ silent: true });
+    }
     refreshStaffFinanceFromApi({ silent: true });
     refreshCashDetailsFromApi({ silent: true });
     updateLoginSessionState(`${signedUser.name} için PIN doğrulandı. Oturum açık.`);
@@ -785,6 +817,10 @@ async function restoreSavedSession() {
     applyDemoUser(signedUser, false);
     setAuthenticated(true);
     focusRoleHome(signedUser.demoRole);
+    if (signedUser.demoRole === "owner" || signedUser.demoRole === "admin") {
+      refreshCustomersFromApi({ silent: true });
+      refreshApplicationsFromApi({ silent: true });
+    }
     updateLoginSessionState(`${signedUser.name} için canlı oturum açık.`);
   } catch {
     removeJson(storageKeys.activeSession);
@@ -1489,6 +1525,83 @@ function normalizeApplication(application) {
   };
 }
 
+function normalizeCustomer(customer) {
+  return {
+    id: customer.id,
+    name: customer.name || customer.customerName || "Müşteri",
+    phone: customer.phone || "",
+    membershipLevel: customer.membershipLevel || "candidate",
+    membershipStatus: customer.membershipStatus || "candidate",
+    inviteCode: customer.inviteCode || "",
+    intent: customer.intent || "",
+    note: customer.note || "",
+  };
+}
+
+function renderCustomers(customers) {
+  if (!customerManagementList) return;
+  customerManagementList.innerHTML = "";
+
+  customers.forEach((customer, index) => {
+    const item = document.createElement("div");
+    item.className = "customer-management-item";
+    item.innerHTML = `
+      <form class="customer-edit-form" data-customer-index="${index}" data-customer-id="${customer.id || ""}">
+        <label>
+          Ad
+          <input name="name" value="${escapeHtml(customer.name)}" required />
+        </label>
+        <label>
+          Telefon
+          <input name="phone" value="${escapeHtml(customer.phone)}" required />
+        </label>
+        <label>
+          Seviye
+          <select name="membershipLevel">
+            ${["candidate", "essential", "atelier", "private"].map((level) => `<option value="${level}"${level === customer.membershipLevel ? " selected" : ""}>${level}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          Durum
+          <select name="membershipStatus">
+            ${[
+              ["candidate", "Aday"],
+              ["review", "İnceleme"],
+              ["invited", "Davetli"],
+              ["active", "Aktif üye"],
+              ["hold", "Beklemede"],
+            ].map(([value, label]) => `<option value="${value}"${value === customer.membershipStatus ? " selected" : ""}>${label}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          Bakım isteği
+          <input name="intent" value="${escapeHtml(customer.intent)}" placeholder="Saç + sakal" />
+        </label>
+        <label>
+          Not
+          <input name="note" value="${escapeHtml(customer.note)}" placeholder="Özel not" />
+        </label>
+        <button class="button button-secondary" type="submit">Güncelle</button>
+      </form>
+    `;
+    customerManagementList.append(item);
+  });
+}
+
+async function refreshCustomersFromApi({ silent = false } = {}) {
+  try {
+    const customers = (await apiRequest("/api/customers")).map(normalizeCustomer);
+    saveJson(storageKeys.customers, customers);
+    renderCustomers(customers);
+    if (!silent) showToast("Müşteri listesi veritabanından güncellendi.");
+    return customers;
+  } catch {
+    const fallbackCustomers = readJson(storageKeys.customers) || [];
+    renderCustomers(fallbackCustomers);
+    return fallbackCustomers;
+  }
+}
+
 async function refreshApplicationsFromApi({ silent = false } = {}) {
   try {
     state.applications = (await apiRequest("/api/applications")).map(normalizeApplication);
@@ -1574,6 +1687,30 @@ form.addEventListener("submit", async (event) => {
   showToast("Başvuru kaydedildi. Üyelik onayı işletme panelinden verilecek.");
 });
 
+customerBookingForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const data = new FormData(customerBookingForm);
+  const serviceName = String(data.get("serviceName") || "").trim();
+  const startsAt = String(data.get("startsAt") || "").trim();
+  const note = String(data.get("note") || "").trim();
+
+  try {
+    const session = await apiRequest("/api/sessions/request", {
+      method: "POST",
+      body: JSON.stringify({ serviceName, startsAt: startsAt.replace("T", " "), note }),
+    });
+    customerBookingFeedback.textContent = `${session.serviceSummary} talebi alındı. Patron/admin onay ekranına düştü.`;
+    customerBookingForm.reset();
+    await refreshCalendarFromApi({ silent: true });
+    await refreshSessionsFromApi({ silent: true });
+    await refreshMemberCardsFromApi({ silent: true });
+    showToast("Randevu talebi oluşturuldu.");
+  } catch (error) {
+    customerBookingFeedback.textContent = error.message || "Talep oluşturulamadı.";
+    showToast(error.message || "Talep oluşturulamadı.");
+  }
+});
+
 queue.addEventListener("click", async (event) => {
   const button = event.target.closest("button");
   if (!button) return;
@@ -1614,6 +1751,56 @@ queue.addEventListener("click", async (event) => {
 
   saveJson(storageKeys.applications, state.applications);
   renderQueue();
+});
+
+customerManagementList?.addEventListener("submit", async (event) => {
+  const customerForm = event.target.closest(".customer-edit-form");
+  if (!customerForm) return;
+
+  event.preventDefault();
+  const customerId = Number(customerForm.dataset.customerId || 0);
+  const index = Number(customerForm.dataset.customerIndex || 0);
+  const data = new FormData(customerForm);
+  const customer = {
+    name: String(data.get("name") || "").trim(),
+    phone: String(data.get("phone") || "").trim(),
+    membershipLevel: String(data.get("membershipLevel") || "candidate"),
+    membershipStatus: String(data.get("membershipStatus") || "candidate"),
+    intent: String(data.get("intent") || "").trim(),
+    note: String(data.get("note") || "").trim(),
+  };
+
+  if (!customer.name || !customer.phone) {
+    showToast("Müşteri adı ve telefon zorunlu.");
+    return;
+  }
+
+  if (customerId) {
+    try {
+      await apiRequest(`/api/customers/${customerId}`, {
+        method: "PUT",
+        body: JSON.stringify(customer),
+      });
+      await refreshCustomersFromApi({ silent: true });
+      await refreshApplicationsFromApi({ silent: true });
+      showToast("Müşteri bilgileri güncellendi.");
+      return;
+    } catch (error) {
+      showToast(error.message || "Müşteri güncellenemedi.");
+    }
+  }
+
+  const customers = readJson(storageKeys.customers) || [];
+  customers[index] = { ...customers[index], ...customer };
+  saveJson(storageKeys.customers, customers);
+  renderCustomers(customers);
+  showToast("Müşteri bilgileri güncellendi.");
+});
+
+ownerTabButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    applyOwnerTab(button.dataset.ownerTab || "overview");
+  });
 });
 
 openSlotButton.addEventListener("click", async () => {
@@ -2247,6 +2434,11 @@ refreshDemoUsersFromApi({ silent: true }).then((users) => {
 state.applications = readJson(storageKeys.applications) || [...seedApplications];
 renderQueue();
 refreshApplicationsFromApi({ silent: true });
+
+const savedCustomers = readJson(storageKeys.customers) || [];
+renderCustomers(savedCustomers);
+refreshCustomersFromApi({ silent: true });
+applyOwnerTab(readJson(storageKeys.ownerTab) || "overview", false);
 
 const savedSpecialPrices = readJson(storageKeys.specialPrices) || [...seedSpecialPrices];
 renderSpecialPrices(savedSpecialPrices);

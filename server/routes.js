@@ -68,6 +68,22 @@ function customerApplicationFromRow(row) {
   };
 }
 
+function customerPayloadFromRow(row) {
+  const notes = parseCustomerNotes(row.privateNotes);
+  return {
+    id: row.id,
+    userId: row.userId || null,
+    name: row.customerName,
+    phone: row.phone || "",
+    membershipLevel: row.membershipLevel || "candidate",
+    membershipStatus: row.membershipStatus || "candidate",
+    inviteCode: row.inviteCode || "",
+    intent: notes.intent || "",
+    note: notes.note || "",
+    createdAt: row.createdAt,
+  };
+}
+
 function statusText(status) {
   const labels = {
     open: "içeride",
@@ -658,6 +674,93 @@ export function registerRoutes(app, db) {
     res.json(customerApplicationFromRow(application));
   });
 
+  app.get("/api/customers", (req, res) => {
+    if (!requireRoles(req, res, ["owner", "admin"])) return;
+
+    res.json(
+      all(
+        db,
+        `select
+          id,
+          user_id as userId,
+          full_name as customerName,
+          phone,
+          membership_level as membershipLevel,
+          membership_status as membershipStatus,
+          invite_code as inviteCode,
+          private_notes as privateNotes,
+          created_at as createdAt
+        from customer_profiles
+        order by
+          case membership_status
+            when 'active' then 1
+            when 'invited' then 2
+            when 'review' then 3
+            when 'candidate' then 4
+            when 'hold' then 5
+            else 6
+          end,
+          full_name`
+      ).map(customerPayloadFromRow)
+    );
+  });
+
+  app.put("/api/customers/:id", (req, res) => {
+    if (!requireRoles(req, res, ["owner", "admin"])) return;
+
+    const id = Number(req.params.id);
+    const existing = get(db, "select * from customer_profiles where id = ?", [id]);
+    if (!existing) {
+      res.status(404).json({ error: "Müşteri bulunamadı." });
+      return;
+    }
+
+    const name = String(req.body.name || "").trim();
+    const phone = String(req.body.phone || "").trim();
+    const membershipLevel = String(req.body.membershipLevel || "candidate").trim();
+    const membershipStatus = String(req.body.membershipStatus || "candidate").trim();
+    const intent = String(req.body.intent || "").trim();
+    const note = String(req.body.note || "").trim();
+    const inviteCode = String(req.body.inviteCode || "").trim();
+
+    if (!name || !phone) {
+      res.status(400).json({ error: "Müşteri adı ve telefon zorunlu." });
+      return;
+    }
+
+    run(
+      db,
+      `update customer_profiles
+       set full_name = ?,
+           phone = ?,
+           membership_level = ?,
+           membership_status = ?,
+           invite_code = ?,
+           private_notes = ?,
+           updated_at = datetime('now')
+       where id = ?`,
+      [name, phone, membershipLevel, membershipStatus, inviteCode || null, JSON.stringify({ intent, note }), id]
+    );
+
+    const customer = get(
+      db,
+      `select
+        id,
+        user_id as userId,
+        full_name as customerName,
+        phone,
+        membership_level as membershipLevel,
+        membership_status as membershipStatus,
+        invite_code as inviteCode,
+        private_notes as privateNotes,
+        created_at as createdAt
+      from customer_profiles
+      where id = ?`,
+      [id]
+    );
+    res.json(customerPayloadFromRow(customer));
+  });
+
   app.get("/api/sessions/upcoming", (req, res) => {
     const session = sessionFromRequest(req);
     const scope = sessionScope(session);
@@ -885,6 +988,73 @@ export function registerRoutes(app, db) {
         customerName: customer.full_name,
         serviceSummary: "İmza kesim + Manikür + Pedikür",
         totalAmount,
+      });
+    } catch (error) {
+      db.exec("rollback");
+      throw error;
+    }
+  });
+
+  app.post("/api/sessions/request", (req, res) => {
+    const session = sessionFromRequest(req);
+    if (!session) {
+      res.status(401).json({ error: "Oturum gerekli." });
+      return;
+    }
+
+    const startsAt = String(req.body.startsAt || "").trim();
+    const serviceName = String(req.body.serviceName || "").trim();
+    const note = String(req.body.note || "").trim();
+
+    if (!startsAt || !serviceName) {
+      res.status(400).json({ error: "Gün, saat ve hizmet seçimi zorunlu." });
+      return;
+    }
+
+    let customer;
+    if (session.user.roleCode === "customer") {
+      customer = get(db, "select * from customer_profiles where user_id = ? order by id desc limit 1", [
+        Number(session.user.id),
+      ]);
+    } else if (session.user.roleCode === "owner" || session.user.roleCode === "admin") {
+      const customerName = String(req.body.customerName || "").trim();
+      const phone = String(req.body.phone || slugPhoneFromName(customerName || "musteri")).trim();
+      customer = ensureCustomerByPhone(db, customerName || "Müşteri", phone);
+    }
+
+    if (!customer) {
+      res.status(404).json({ error: "Müşteri profili bulunamadı." });
+      return;
+    }
+
+    const service = ensureService(db, serviceName);
+    const amount = Number(req.body.amount || service.default_price || 0);
+
+    db.exec("begin");
+    try {
+      const sessionResult = run(
+        db,
+        `insert into service_sessions (customer_id, status, starts_at, total_amount, note, created_by)
+         values (?, ?, ?, ?, ?, ?)`,
+        [customer.id, "planned", startsAt, amount, note ? `Müşteri talebi: ${note}` : "Müşteri randevu talebi", Number(session.user.id)]
+      );
+      const sessionId = sessionResult.lastInsertRowid;
+      run(
+        db,
+        `insert into service_session_items (session_id, service_id, quantity, unit_price, line_total)
+         values (?, ?, ?, ?, ?)`,
+        [sessionId, service.id, 1, amount, amount]
+      );
+      db.exec("commit");
+
+      res.status(201).json({
+        id: sessionId,
+        startsAt,
+        status: "planned",
+        customerName: customer.full_name,
+        serviceSummary: service.name,
+        totalAmount: amount,
+        note,
       });
     } catch (error) {
       db.exec("rollback");
