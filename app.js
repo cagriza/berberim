@@ -897,11 +897,36 @@ function renderEditableStaff(staff) {
     const item = document.createElement("div");
     item.className = "editable-staff-item";
     item.innerHTML = `
-      <div>
-        <strong>${escapeHtml(person.name)}</strong>
-        <span>${escapeHtml(person.role)} · ${escapeHtml(person.shift)} · ${escapeHtml(person.status)}</span>
-      </div>
-      <button class="icon-button" type="button" data-remove-staff="${index}" data-staff-id="${person.id || ""}" title="Çalışanı kaldır">×</button>
+      <form class="staff-edit-form" data-staff-index="${index}" data-staff-id="${person.id || ""}">
+        <label>
+          Ad
+          <input name="name" value="${escapeHtml(person.name)}" required />
+        </label>
+        <label>
+          Rol
+          <select name="role">
+            ${["Usta", "Bakım uzmanı", "Destek"].map((role) => `<option${role === person.role ? " selected" : ""}>${role}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          Vardiya
+          <input name="shift" value="${escapeHtml(person.shift)}" required />
+        </label>
+        <label>
+          Durum
+          <select name="status">
+            ${["Aktif", "Molada", "İzinli", "Pasif"].map((status) => `<option${status === person.status ? " selected" : ""}>${status}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          Yeni PIN
+          <input name="pin" inputmode="numeric" placeholder="Boşsa değişmez" />
+        </label>
+        <div class="staff-actions">
+          <button class="button button-secondary" type="submit">Güncelle</button>
+          <button class="icon-button" type="button" data-remove-staff="${index}" data-staff-id="${person.id || ""}" title="Çalışanı pasife al">×</button>
+        </div>
+      </form>
     `;
     editableStaffList.append(item);
   });
@@ -2007,6 +2032,53 @@ editableStaffList.addEventListener("click", async (event) => {
   saveJson(storageKeys.staff, staff);
   renderEditableStaff(staff);
   showToast("Çalışan listeden kaldırıldı.");
+});
+
+editableStaffList.addEventListener("submit", async (event) => {
+  const form = event.target.closest(".staff-edit-form");
+  if (!form) return;
+
+  event.preventDefault();
+  const staffId = Number(form.dataset.staffId || 0);
+  const index = Number(form.dataset.staffIndex || 0);
+  const data = new FormData(form);
+  const person = {
+    name: String(data.get("name") || "").trim(),
+    role: String(data.get("role") || "Usta"),
+    shift: String(data.get("shift") || "").trim(),
+    status: String(data.get("status") || "Aktif"),
+    pin: String(data.get("pin") || "").trim(),
+  };
+
+  if (!person.name || !person.shift) {
+    showToast("Çalışan adı ve vardiya zorunlu.");
+    return;
+  }
+  if (person.pin && person.pin.length < 4) {
+    showToast("PIN en az 4 haneli olmalı.");
+    return;
+  }
+
+  if (staffId) {
+    try {
+      await apiRequest(`/api/staff/${staffId}`, {
+        method: "PUT",
+        body: JSON.stringify(person),
+      });
+      await refreshStaffFromApi({ silent: true });
+      await refreshDemoUsersFromApi({ silent: true });
+      showToast(person.pin ? "Çalışan ve giriş PIN'i güncellendi." : "Çalışan bilgileri güncellendi.");
+      return;
+    } catch (error) {
+      showToast(error.message || "API kapalı. Çalışan demo hafızasında güncelleniyor.");
+    }
+  }
+
+  const staff = readJson(storageKeys.staff) || [...seedStaff];
+  staff[index] = { ...staff[index], ...person };
+  saveJson(storageKeys.staff, staff);
+  renderEditableStaff(staff);
+  showToast("Çalışan bilgileri güncellendi.");
 });
 
 editablePriceList.addEventListener("click", async (event) => {

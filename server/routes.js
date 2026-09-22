@@ -1120,6 +1120,96 @@ export function registerRoutes(app, db) {
     }
   });
 
+  app.put("/api/staff/:id", (req, res) => {
+    if (!requireRoles(req, res, ["owner", "admin"])) return;
+
+    const staff = get(
+      db,
+      `select
+        staff_profiles.*,
+        users.id as userId,
+        users.full_name as currentName
+      from staff_profiles
+      join users on users.id = staff_profiles.user_id
+      where staff_profiles.id = ?`,
+      [Number(req.params.id)]
+    );
+    if (!staff) {
+      res.status(404).json({ error: "Çalışan bulunamadı." });
+      return;
+    }
+
+    const name = String(req.body.name || "").trim();
+    const role = String(req.body.role || "Usta").trim();
+    const shift = String(req.body.shift || "").trim();
+    const status = String(req.body.status || "Aktif").trim();
+    const pin = String(req.body.pin || "").trim();
+    const staffType = roleCodeFromStaffRole(role);
+    const roleRow = get(db, "select * from roles where code = ? limit 1", [staffType]);
+
+    if (!name || !shift) {
+      res.status(400).json({ error: "Çalışan adı ve vardiya zorunlu." });
+      return;
+    }
+    if (pin && pin.length < 4) {
+      res.status(400).json({ error: "PIN değiştirilecekse en az 4 haneli olmalı." });
+      return;
+    }
+
+    db.exec("begin");
+    try {
+      run(
+        db,
+        `update users
+         set role_id = ?, full_name = ?, password_hash = coalesce(?, password_hash), status = ?, updated_at = datetime('now')
+         where id = ?`,
+        [roleRow?.id || staff.role_id || 3, name, pin ? hashDemoPin(pin) : null, status === "Pasif" ? "inactive" : "active", staff.userId]
+      );
+      run(
+        db,
+        `update staff_profiles
+         set staff_type = ?,
+             shift_label = ?,
+             work_status = ?,
+             commission_rate = ?,
+             can_close_payment = ?,
+             can_view_private_finance = ?,
+             updated_at = datetime('now')
+         where id = ?`,
+        [
+          staffType,
+          shift,
+          status,
+          staffType === "care_specialist" ? 40 : staffType === "assistant" ? 0 : 50,
+          staffType === "assistant" ? 0 : 1,
+          staffType === "owner" ? 1 : 0,
+          staff.id,
+        ]
+      );
+      run(
+        db,
+        `update user_sessions
+         set revoked_at = datetime('now')
+         where user_id = ? and revoked_at is null`,
+        [staff.userId]
+      );
+      db.exec("commit");
+
+      res.json({
+        id: staff.id,
+        userId: staff.userId,
+        name,
+        role: staffTypeLabel(staffType),
+        staffType,
+        shift,
+        status,
+      });
+    } catch (error) {
+      db.exec("rollback");
+      throw error;
+    }
+  });
+
   app.delete("/api/staff/:id", (req, res) => {
     if (!requireRoles(req, res, ["owner", "admin"])) return;
 
