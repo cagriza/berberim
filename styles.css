@@ -352,7 +352,7 @@ h1 {
   display: none;
 }
 
-[data-authenticated="false"] .app-shell {
+[data-authenticated]:not([data-authenticated="true"]) .app-shell {
   display: none;
 }
 

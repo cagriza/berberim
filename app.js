@@ -755,6 +755,33 @@ async function signInDemoUser(user, pin) {
   }
 }
 
+async function restoreSavedSession() {
+  const savedSession = readJson(storageKeys.activeSession);
+  setAuthenticated(false);
+
+  if (!savedSession?.token) {
+    updateLoginSessionState("Demo PIN: patron 1453, admin 2026, Faruk 1111, müşteri 5555.");
+    return;
+  }
+
+  updateLoginSessionState("Oturum kontrol ediliyor...");
+
+  try {
+    const session = await apiRequest("/api/auth/session");
+    const signedUser = normalizeDemoUser(session.user);
+    saveJson(storageKeys.activeSession, { ...savedSession, ...session, user: signedUser });
+    applyDemoUser(signedUser, false);
+    setAuthenticated(true);
+    updateLoginSessionState(`${signedUser.name} için canlı oturum açık.`);
+  } catch {
+    removeJson(storageKeys.activeSession);
+    removeJson(storageKeys.activeDemoUser);
+    applyDemoUser(seedDemoUsers[0], false);
+    setAuthenticated(false);
+    updateLoginSessionState("Oturum süresi doldu. Devam etmek için PIN ile giriş yap.");
+  }
+}
+
 async function signOut() {
   try {
     await apiRequest("/api/auth/logout", { method: "POST" });
@@ -2119,14 +2146,14 @@ const savedDemoUsers = readJson(storageKeys.demoUsers) || [...seedDemoUsers];
 renderDemoUsers(savedDemoUsers);
 const savedDemoUser = readJson(storageKeys.activeDemoUser) || savedDemoUsers[0];
 applyDemoUser(savedDemoUser, false);
-const savedSession = readJson(storageKeys.activeSession);
-setAuthenticated(Boolean(savedSession?.token));
-updateLoginSessionState(
-  savedSession?.user?.name
-    ? `${savedSession.user.name} için canlı oturum açık.`
-    : "Demo PIN: patron 1453, admin 2026, Faruk 1111, müşteri 5555."
-);
+restoreSavedSession();
 refreshDemoUsersFromApi({ silent: true }).then((users) => {
+  const activeSession = readJson(storageKeys.activeSession);
+  if (activeSession?.user) {
+    applyDemoUser(normalizeDemoUser(activeSession.user), false);
+    return;
+  }
+
   const activeUser = readJson(storageKeys.activeDemoUser) || users[0];
   const matchingUser = users.find((user) => user.id === activeUser.id) || activeUser;
   applyDemoUser(matchingUser, false);
