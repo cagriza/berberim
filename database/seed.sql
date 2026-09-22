@@ -84,6 +84,22 @@ insert or ignore into staff_profiles (
   ((select id from users where email = 'yardimci3@berberim.local'), 'assistant', '13:00-21:00', 'Aktif', 24000, 0, 0, 0);
 
 insert into customer_profiles (
+  user_id,
+  full_name,
+  phone,
+  membership_level,
+  membership_status,
+  invite_code,
+  private_notes
+)
+select (select id from users where email = 'mehmet.a@berberim.local'), 'Mehmet A.', 'demo-mehmet-a', 'atelier', 'active', 'BC-ATELIER-09', '{"intent":"Saç kesimi ve sakal tasarım","note":"Cuma akşamı seanslarını tercih ediyor."}'
+where not exists (select 1 from customer_profiles where phone = 'demo-mehmet-a');
+
+update customer_profiles
+set user_id = (select id from users where email = 'mehmet.a@berberim.local')
+where phone = 'demo-mehmet-a' and user_id is null;
+
+insert into customer_profiles (
   full_name,
   phone,
   membership_level,

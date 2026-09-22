@@ -275,6 +275,31 @@ function requireRoles(req, res, roles) {
   return session;
 }
 
+function sessionScope(session) {
+  if (!session) return { where: "", params: [], role: null };
+  const role = session.user.roleCode;
+  if (role === "owner" || role === "admin") return { where: "", params: [], role };
+  if (role === "master" || role === "care_specialist" || role === "assistant") {
+    return { where: " and users.id = ?", params: [Number(session.user.id)], role };
+  }
+  if (role === "customer") {
+    return { where: " and customer_profiles.user_id = ?", params: [Number(session.user.id)], role };
+  }
+  return { where: " and 1 = 0", params: [], role };
+}
+
+function customerScope(session) {
+  if (!session) return { where: "", params: [], role: null };
+  const role = session.user.roleCode;
+  if (role === "owner" || role === "admin" || role === "master" || role === "care_specialist" || role === "assistant") {
+    return { where: "", params: [], role };
+  }
+  if (role === "customer") {
+    return { where: " where customer_profiles.user_id = ?", params: [Number(session.user.id)], role };
+  }
+  return { where: " where 1 = 0", params: [], role };
+}
+
 function calendarDateParts(date) {
   const parts = new Intl.DateTimeFormat("tr-TR", {
     timeZone: "Europe/Istanbul",
@@ -596,6 +621,8 @@ export function registerRoutes(app, db) {
   });
 
   app.get("/api/sessions/upcoming", (req, res) => {
+    const session = sessionFromRequest(req);
+    const scope = sessionScope(session);
     res.json(
       all(
         db,
@@ -610,15 +637,20 @@ export function registerRoutes(app, db) {
         join customer_profiles on customer_profiles.id = service_sessions.customer_id
         left join service_session_items on service_session_items.session_id = service_sessions.id
         left join services on services.id = service_session_items.service_id
-        where service_sessions.status in ('planned', 'open')
+        left join staff_profiles on staff_profiles.id = service_sessions.primary_staff_id
+        left join users on users.id = staff_profiles.user_id
+        where service_sessions.status in ('planned', 'open')${scope.where}
         group by service_sessions.id
         order by service_sessions.starts_at is null, service_sessions.starts_at, service_sessions.id
-        limit 12`
+        limit 12`,
+        scope.params
       )
     );
   });
 
   app.get("/api/calendar/week", (req, res) => {
+    const session = sessionFromRequest(req);
+    const scope = sessionScope(session);
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const days = Array.from({ length: 7 }, (_, index) => {
@@ -645,10 +677,11 @@ export function registerRoutes(app, db) {
       left join roles on roles.id = users.role_id
       left join service_session_items on service_session_items.session_id = service_sessions.id
       left join services on services.id = service_session_items.service_id
-      where service_sessions.status in ('planned', 'open', 'in_progress', 'completed')
+      where service_sessions.status in ('planned', 'open', 'in_progress', 'completed')${scope.where}
       group by service_sessions.id
       order by service_sessions.starts_at is null, service_sessions.starts_at, service_sessions.id
-      limit 40`
+      limit 40`,
+      scope.params
     );
 
     sessionRows.forEach((row) => {
@@ -664,7 +697,10 @@ export function registerRoutes(app, db) {
     });
 
     const occupiedSlots = new Set(sessionRows.map((row) => `${sessionDateKey(row.startsAt)} ${formatSessionTime(row.startsAt)}`));
-    const privateBlocks = [
+    const privateBlocks =
+      scope.role === "customer"
+        ? []
+        : [
       { dayIndex: 1, time: "16:00", title: "Private blok", subtitle: "İsmail Gül", meta: "Müşteriye kapalı", kind: "private" },
       { dayIndex: 6, time: "Kapalı", title: "Korunan saat", subtitle: "Private üyeler", meta: "Genel görünmez", kind: "private" },
     ];
@@ -699,6 +735,8 @@ export function registerRoutes(app, db) {
   });
 
   app.get("/api/member-cards/today", (req, res) => {
+    const session = sessionFromRequest(req);
+    const scope = sessionScope(session);
     const sessionRows = all(
       db,
       `select
@@ -715,9 +753,13 @@ export function registerRoutes(app, db) {
       left join service_session_items on service_session_items.session_id = service_sessions.id
       left join services on services.id = service_session_items.service_id
       left join payments on payments.session_id = service_sessions.id
+      left join staff_profiles on staff_profiles.id = service_sessions.primary_staff_id
+      left join users on users.id = staff_profiles.user_id
+      where 1 = 1${scope.where}
       group by service_sessions.id
       order by service_sessions.id desc
-      limit 8`
+      limit 8`,
+      scope.params
     );
 
     if (sessionRows.length) {
@@ -740,6 +782,7 @@ export function registerRoutes(app, db) {
       return;
     }
 
+    const customerProfileScope = customerScope(session);
     res.json(
       all(
         db,
@@ -750,8 +793,10 @@ export function registerRoutes(app, db) {
           membership_status as membershipStatus,
           private_notes as privateNotes
         from customer_profiles
+        ${customerProfileScope.where}
         order by id desc
-        limit 5`
+        limit 5`,
+        customerProfileScope.params
       ).map((row) => {
         const notes = parseCustomerNotes(row.privateNotes);
         return {
@@ -1050,7 +1095,19 @@ export function registerRoutes(app, db) {
   });
 
   app.get("/api/staff-finance", (req, res) => {
-    if (!requireRoles(req, res, ["owner", "admin"])) return;
+    const session = sessionFromRequest(req);
+    if (!session) {
+      res.status(401).json({ error: "Oturum gerekli." });
+      return;
+    }
+    if (session.user.roleCode === "customer") {
+      res.status(403).json({ error: "Bu ekran için yetkin yok." });
+      return;
+    }
+    const staffFinanceWhere =
+      session.user.roleCode === "owner" || session.user.roleCode === "admin" ? "" : " and users.id = ?";
+    const staffFinanceParams =
+      session.user.roleCode === "owner" || session.user.roleCode === "admin" ? [] : [Number(session.user.id)];
 
     res.json(
       all(
@@ -1086,8 +1143,9 @@ export function registerRoutes(app, db) {
           from staff_account_movements
           group by staff_id
         ) account on account.staff_id = staff_profiles.id
-        where users.status = 'active'
-        order by staff_profiles.id`
+        where users.status = 'active'${staffFinanceWhere}
+        order by staff_profiles.id`,
+        staffFinanceParams
       ).map((row) => ({
         ...row,
         role: staffTypeLabel(row.staffType),
