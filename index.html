@@ -52,19 +52,16 @@
           <span>Berberim Club</span>
         </a>
         <nav class="desktop-nav" aria-label="Sayfa bölümleri">
-          <a href="#membership">Üyelik</a>
-          <a href="#levels">Seviyeler</a>
-          <a href="#services">Hizmetler</a>
-          <a href="#team">Ekip</a>
-          <a href="#experience">Deneyim</a>
-          <a href="#roles">Roller</a>
-          <a href="#ops">İşletme</a>
+          <a href="#membership" data-demo-scope="customer">Üyelik</a>
+          <a href="#levels" data-demo-scope="customer">Seviyeler</a>
+          <a href="#services" data-demo-scope="customer">Hizmetler</a>
+          <a href="#ops" data-demo-scope="owner admin master">İşletme</a>
         </nav>
         <button class="topbar-action" type="button" id="logoutButton">Çıkış</button>
       </header>
 
       <main id="home">
-        <section class="hero" aria-labelledby="hero-title">
+        <section class="hero" aria-labelledby="hero-title" data-demo-scope="customer">
           <img
             class="hero-image"
             src="./assets/private-studio-hero.png"
@@ -95,7 +92,7 @@
           </aside>
         </section>
 
-        <section class="control-band" aria-label="Üyelik sistemi özeti">
+        <section class="control-band" aria-label="Üyelik sistemi özeti" data-demo-scope="customer">
           <article>
             <span>01</span>
             <h2>Başvuru</h2>
@@ -113,7 +110,7 @@
           </article>
         </section>
 
-        <section class="demo-switcher" aria-label="Demo rol seçimi">
+        <section class="demo-switcher" aria-label="Demo rol seçimi" data-demo-scope="owner admin">
           <div>
             <span class="panel-kicker">Demo görünümü</span>
             <strong>Hangi rolün ne gördüğünü seçerek kontrol et.</strong>
@@ -127,7 +124,7 @@
           </div>
         </section>
 
-        <section class="access-preview" aria-label="Rol bazlı giriş demosu">
+        <section class="access-preview" aria-label="Rol bazlı giriş demosu" data-demo-scope="owner admin">
           <div class="access-preview-copy">
             <p class="eyebrow">Giriş demosu</p>
             <h2>Kullanıcı seç, ekran yetkileri ona göre açılsın.</h2>
@@ -327,7 +324,7 @@
           </div>
         </section>
 
-        <section class="services" id="services" aria-label="Berberim Club hizmetleri" data-demo-scope="customer owner admin master">
+        <section class="services" id="services" aria-label="Berberim Club hizmetleri" data-demo-scope="customer">
           <div class="section-heading">
             <p class="eyebrow">Bakım menüsü</p>
             <h2>Üye tek bir hizmete bağlı kalmaz; bakım setlerini birlikte seçebilir.</h2>
@@ -383,7 +380,7 @@
           </div>
         </section>
 
-        <section class="team" id="team" aria-label="Berberim Club uzmanları" data-demo-scope="owner admin master">
+        <section class="team" id="team" aria-label="Berberim Club uzmanları" data-demo-scope="customer">
           <div class="section-heading">
             <p class="eyebrow">Usta ve uzman eşleşmesi</p>
             <h2>Her üye, ihtiyacına göre doğru usta veya bakım uzmanıyla eşleşir.</h2>
@@ -420,7 +417,7 @@
           </div>
         </section>
 
-        <section class="experience" id="experience" aria-label="Üyelik deneyimi">
+        <section class="experience" id="experience" aria-label="Üyelik deneyimi" data-demo-scope="customer">
           <div class="section-heading">
             <p class="eyebrow">İlk ürün kurgusu</p>
             <h2>Deneyim; başvuru, üyelik ve işletme kontrolü arasında net bir denge kuruyor.</h2>
@@ -444,7 +441,7 @@
           </div>
         </section>
 
-        <section class="roles" id="roles" aria-label="Rol bazlı ekran kurgusu">
+        <section class="roles" id="roles" aria-label="Rol bazlı ekran kurgusu" data-demo-scope="owner admin">
           <div class="section-heading">
             <p class="eyebrow">Rol bazlı erişim</p>
             <h2>Patron her şeyi görür; çalışan yalnızca kendi işi, kendi tahsilatı ve kendi hesabıyla çalışır.</h2>
@@ -497,7 +494,7 @@
           </div>
         </section>
 
-        <section class="studio" id="studio" aria-label="Stüdyo vitrini">
+        <section class="studio" id="studio" aria-label="Stüdyo vitrini" data-demo-scope="customer">
           <div class="studio-copy">
             <p class="eyebrow">Berber.cagriza.com için ton</p>
             <h2>Sıcak, seçici, sakin. Tek seferlik işlem değil, düzenli bakım ilişkisi.</h2>
@@ -514,7 +511,7 @@
         </section>
 
         <section class="ops" id="ops" aria-label="İşletme kontrol ekranı" data-demo-scope="owner admin master">
-          <div class="section-heading">
+          <div class="section-heading" data-demo-scope="owner admin">
             <p class="eyebrow">İşletme paneli</p>
             <h2>Usta, günü tek bakışta görür: işlem, hasılat, ekip ve gelen üye trafiği.</h2>
           </div>
@@ -1077,6 +1074,6 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="./app.js?v=65aaaa5-auth-lock" type="module"></script>
+    <script src="./app.js?v=e003bd8-role-home" type="module"></script>
   </body>
 </html>

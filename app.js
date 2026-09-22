@@ -661,6 +661,17 @@ function setAuthenticated(isAuthenticated) {
   document.body.dataset.authenticated = String(Boolean(isAuthenticated));
 }
 
+function landingTargetForRole(role) {
+  if (role === "customer") return "#membership";
+  if (role === "owner" || role === "admin" || role === "master") return "#ops";
+  return "#home";
+}
+
+function focusRoleHome(role) {
+  const target = document.querySelector(landingTargetForRole(role));
+  if (target) target.scrollIntoView({ behavior: "auto", block: "start" });
+}
+
 function applyDemoUser(user, shouldNotify = true) {
   if (!user) return;
 
@@ -743,6 +754,7 @@ async function signInDemoUser(user, pin) {
     saveJson(storageKeys.activeSession, session);
     applyDemoUser(signedUser);
     setAuthenticated(true);
+    focusRoleHome(signedUser.demoRole);
     refreshStaffFinanceFromApi({ silent: true });
     refreshCashDetailsFromApi({ silent: true });
     updateLoginSessionState(`${signedUser.name} için PIN doğrulandı. Oturum açık.`);
@@ -772,6 +784,7 @@ async function restoreSavedSession() {
     saveJson(storageKeys.activeSession, { ...savedSession, ...session, user: signedUser });
     applyDemoUser(signedUser, false);
     setAuthenticated(true);
+    focusRoleHome(signedUser.demoRole);
     updateLoginSessionState(`${signedUser.name} için canlı oturum açık.`);
   } catch {
     removeJson(storageKeys.activeSession);
