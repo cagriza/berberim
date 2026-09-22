@@ -419,8 +419,10 @@ async function apiRequest(path, options = {}) {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: "İşlem tamamlanamadı." }));
-    throw new Error(error.error || "İşlem tamamlanamadı.");
+    const errorPayload = await response.json().catch(() => ({ error: "İşlem tamamlanamadı." }));
+    const error = new Error(errorPayload.error || "İşlem tamamlanamadı.");
+    error.status = response.status;
+    throw error;
   }
 
   return response.status === 204 ? null : response.json();
@@ -583,6 +585,20 @@ function renderStaffFinance(financeRows) {
   });
 }
 
+function renderRestrictedStaffFinance(message) {
+  staffFinanceTable.innerHTML = `
+    <div>
+      <strong>Yetki gerekli</strong>
+      <span>${escapeHtml(message)}</span>
+      <span>-</span>
+      <span>-</span>
+      <span>-</span>
+      <span>-</span>
+    </div>
+  `;
+  financeStaffSelect.innerHTML = '<option value="">Yetki gerekli</option>';
+}
+
 async function refreshStaffFinanceFromApi({ silent = false } = {}) {
   try {
     const financeRows = (await apiRequest("/api/staff-finance")).map(normalizeStaffFinance);
@@ -590,7 +606,12 @@ async function refreshStaffFinanceFromApi({ silent = false } = {}) {
     renderStaffFinance(financeRows);
     if (!silent) showToast("Personel hesapları veritabanından güncellendi.");
     return true;
-  } catch {
+  } catch (error) {
+    if (error.status === 401 || error.status === 403) {
+      renderRestrictedStaffFinance(error.message);
+      if (!silent) showToast(error.message);
+      return false;
+    }
     const fallbackFinance = readJson(storageKeys.staffFinance) || [...seedStaffFinance];
     renderStaffFinance(fallbackFinance);
     if (!silent) showToast("API kapalı olduğu için demo personel hesabı kullanılıyor.");
@@ -722,6 +743,8 @@ async function signInDemoUser(user, pin) {
     saveJson(storageKeys.activeSession, session);
     applyDemoUser(signedUser);
     setAuthenticated(true);
+    refreshStaffFinanceFromApi({ silent: true });
+    refreshCashDetailsFromApi({ silent: true });
     updateLoginSessionState(`${signedUser.name} için PIN doğrulandı. Oturum açık.`);
     return true;
   } catch (error) {
@@ -986,6 +1009,23 @@ function renderCashDetails(details) {
   });
 }
 
+function renderRestrictedCashDetails(message) {
+  ownerGrossCash.textContent = "-";
+  ownerStaffShares.textContent = "-";
+  ownerStaffDebt.textContent = "-";
+  ownerNetCash.textContent = "-";
+  cashCardTotal.textContent = "-";
+  cashCashTotal.textContent = "-";
+  cashOnlineTotal.textContent = "-";
+  cashAverageTicket.textContent = "-";
+  cashLedger.innerHTML = `
+    <div>
+      <strong>Yetki gerekli</strong>
+      <span>${escapeHtml(message)}</span>
+    </div>
+  `;
+}
+
 async function refreshCashDetailsFromApi({ silent = false } = {}) {
   try {
     const details = normalizeCashDetails(await apiRequest("/api/cash/details"));
@@ -993,7 +1033,12 @@ async function refreshCashDetailsFromApi({ silent = false } = {}) {
     renderCashDetails(details);
     if (!silent) showToast("Kasa detayları veritabanından güncellendi.");
     return true;
-  } catch {
+  } catch (error) {
+    if (error.status === 401 || error.status === 403) {
+      renderRestrictedCashDetails(error.message);
+      if (!silent) showToast(error.message);
+      return false;
+    }
     const fallbackDetails = readJson(storageKeys.cashDetails) || seedCashDetails;
     renderCashDetails(fallbackDetails);
     if (!silent) showToast("API kapalı olduğu için demo kasa detayları kullanılıyor.");

@@ -256,6 +256,25 @@ function readBearerToken(req) {
   return match ? match[1] : "";
 }
 
+function sessionFromRequest(req) {
+  return activeSessions.get(readBearerToken(req)) || null;
+}
+
+function requireRoles(req, res, roles) {
+  const session = sessionFromRequest(req);
+  if (!session) {
+    res.status(401).json({ error: "Oturum gerekli." });
+    return null;
+  }
+
+  if (!roles.includes(session.user.roleCode)) {
+    res.status(403).json({ error: "Bu ekran için yetkin yok." });
+    return null;
+  }
+
+  return session;
+}
+
 function calendarDateParts(date) {
   const parts = new Intl.DateTimeFormat("tr-TR", {
     timeZone: "Europe/Istanbul",
@@ -398,6 +417,8 @@ export function registerRoutes(app, db) {
   });
 
   app.put("/api/service-prices", (req, res) => {
+    if (!requireRoles(req, res, ["owner", "admin"])) return;
+
     const prices = req.body || {};
 
     db.exec("begin");
@@ -959,6 +980,8 @@ export function registerRoutes(app, db) {
   });
 
   app.post("/api/staff", (req, res) => {
+    if (!requireRoles(req, res, ["owner", "admin"])) return;
+
     const name = String(req.body.name || "").trim();
     const role = String(req.body.role || "Usta").trim();
     const shift = String(req.body.shift || "").trim();
@@ -1013,6 +1036,8 @@ export function registerRoutes(app, db) {
   });
 
   app.delete("/api/staff/:id", (req, res) => {
+    if (!requireRoles(req, res, ["owner", "admin"])) return;
+
     const staff = get(db, "select * from staff_profiles where id = ?", [Number(req.params.id)]);
     if (!staff) {
       res.status(404).json({ error: "Çalışan bulunamadı." });
@@ -1025,6 +1050,8 @@ export function registerRoutes(app, db) {
   });
 
   app.get("/api/staff-finance", (req, res) => {
+    if (!requireRoles(req, res, ["owner", "admin"])) return;
+
     res.json(
       all(
         db,
@@ -1069,6 +1096,8 @@ export function registerRoutes(app, db) {
   });
 
   app.post("/api/staff/:id/account-movements", (req, res) => {
+    if (!requireRoles(req, res, ["owner", "admin"])) return;
+
     const staff = get(db, "select * from staff_profiles where id = ?", [Number(req.params.id)]);
     if (!staff) {
       res.status(404).json({ error: "Çalışan bulunamadı." });
@@ -1115,6 +1144,8 @@ export function registerRoutes(app, db) {
   });
 
   app.post("/api/special-prices", (req, res) => {
+    if (!requireRoles(req, res, ["owner", "admin"])) return;
+
     const customerName = String(req.body.customerName || "").trim();
     const serviceName = String(req.body.serviceName || "").trim();
     const amount = parseAmount(req.body.amount);
@@ -1154,6 +1185,8 @@ export function registerRoutes(app, db) {
   });
 
   app.delete("/api/special-prices/:id", (req, res) => {
+    if (!requireRoles(req, res, ["owner", "admin"])) return;
+
     const price = get(db, "select * from customer_special_prices where id = ? and active = 1", [Number(req.params.id)]);
     if (!price) {
       res.status(404).json({ error: "Özel fiyat bulunamadı." });
@@ -1338,6 +1371,8 @@ export function registerRoutes(app, db) {
   });
 
   app.get("/api/cash/details", (req, res) => {
+    if (!requireRoles(req, res, ["owner", "admin"])) return;
+
     const summary = get(
       db,
       `select
