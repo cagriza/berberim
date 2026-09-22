@@ -755,7 +755,12 @@ async function signInDemoUser(user, pin) {
   }
 }
 
-function signOut() {
+async function signOut() {
+  try {
+    await apiRequest("/api/auth/logout", { method: "POST" });
+  } catch {
+    // Local sign-out should still work if the API is unavailable.
+  }
   removeJson(storageKeys.activeSession);
   removeJson(storageKeys.activeDemoUser);
   applyDemoUser(seedDemoUsers[0], false);
@@ -1796,6 +1801,7 @@ ownerStaffForm.addEventListener("submit", async (event) => {
     role: String(data.get("staffRole") || "Usta"),
     shift: String(data.get("staffShift") || "").trim(),
     status: String(data.get("staffStatus") || "Aktif"),
+    pin: String(data.get("staffPin") || "").trim(),
   };
 
   try {

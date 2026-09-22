@@ -1,8 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { all, get, run } from "./db.js";
 
-const activeSessions = new Map();
-
 function parseAmount(value) {
   const amount = Number(value);
   return Number.isFinite(amount) && amount >= 0 ? amount : 0;
@@ -239,14 +237,16 @@ function verifyDemoPin(pin, storedHash) {
   return Boolean(storedHash && storedHash === hashDemoPin(pin));
 }
 
-function createSession(user) {
+function createSession(db, user) {
   const token = randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString();
   const payload = {
     token,
     user: demoUserPayload(user),
     signedAt: new Date().toISOString(),
+    expiresAt,
   };
-  activeSessions.set(token, payload);
+  run(db, "insert into user_sessions (token, user_id, expires_at) values (?, ?, ?)", [token, user.id, expiresAt]);
   return payload;
 }
 
@@ -257,7 +257,35 @@ function readBearerToken(req) {
 }
 
 function sessionFromRequest(req) {
-  return activeSessions.get(readBearerToken(req)) || null;
+  const token = readBearerToken(req);
+  if (!token) return null;
+  const session = get(
+    req.app.locals.db,
+    `select
+      user_sessions.token,
+      user_sessions.created_at as signedAt,
+      user_sessions.expires_at as expiresAt,
+      users.id,
+      users.full_name as name,
+      roles.code as roleCode,
+      roles.name as roleName
+    from user_sessions
+    join users on users.id = user_sessions.user_id
+    join roles on roles.id = users.role_id
+    where user_sessions.token = ?
+      and user_sessions.revoked_at is null
+      and user_sessions.expires_at > datetime('now')
+      and users.status = 'active'
+    limit 1`,
+    [token]
+  );
+  if (!session) return null;
+  return {
+    token: session.token,
+    user: demoUserPayload(session),
+    signedAt: session.signedAt,
+    expiresAt: session.expiresAt,
+  };
 }
 
 function requireRoles(req, res, roles) {
@@ -333,6 +361,8 @@ function sessionDateKey(value) {
 }
 
 export function registerRoutes(app, db) {
+  app.locals.db = db;
+
   app.get("/api/health", (req, res) => {
     const tableCount = get(db, "select count(*) as count from sqlite_master where type = 'table'");
     res.json({ ok: true, database: "sqlite", tables: tableCount.count });
@@ -396,17 +426,25 @@ export function registerRoutes(app, db) {
       return;
     }
 
-    res.json({ ok: true, ...createSession(user) });
+    res.json({ ok: true, ...createSession(db, user) });
   });
 
   app.get("/api/auth/session", (req, res) => {
-    const session = activeSessions.get(readBearerToken(req));
+    const session = sessionFromRequest(req);
     if (!session) {
       res.status(401).json({ error: "Oturum bulunamadı." });
       return;
     }
 
     res.json({ ok: true, ...session });
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    const token = readBearerToken(req);
+    if (token) {
+      run(db, "update user_sessions set revoked_at = datetime('now') where token = ?", [token]);
+    }
+    res.json({ ok: true });
   });
 
   app.get("/api/services", (req, res) => {
@@ -1031,21 +1069,23 @@ export function registerRoutes(app, db) {
     const role = String(req.body.role || "Usta").trim();
     const shift = String(req.body.shift || "").trim();
     const status = String(req.body.status || "Aktif").trim();
+    const pin = String(req.body.pin || "").trim();
     const staffType = roleCodeFromStaffRole(role);
     const roleRow = get(db, "select * from roles where code = ? limit 1", [staffType === "care_specialist" ? "care_specialist" : staffType]);
 
-    if (!name || !shift) {
-      res.status(400).json({ error: "Çalışan adı ve vardiya zorunlu." });
+    if (!name || !shift || pin.length < 4) {
+      res.status(400).json({ error: "Çalışan adı, vardiya ve en az 4 haneli PIN zorunlu." });
       return;
     }
 
     const email = `${slugPhoneFromName(name)}-${Date.now()}@berberim.local`;
     db.exec("begin");
     try {
-      const userResult = run(db, "insert into users (role_id, full_name, email, status) values (?, ?, ?, ?)", [
+      const userResult = run(db, "insert into users (role_id, full_name, email, password_hash, status) values (?, ?, ?, ?, ?)", [
         roleRow?.id || 3,
         name,
         email,
+        hashDemoPin(pin),
         "active",
       ]);
       const staffResult = run(

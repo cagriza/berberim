@@ -23,6 +23,14 @@ create table if not exists users (
   updated_at text not null default (datetime('now'))
 );
 
+create table if not exists user_sessions (
+  token text primary key,
+  user_id integer not null references users(id) on delete cascade,
+  created_at text not null default (datetime('now')),
+  expires_at text not null,
+  revoked_at text
+);
+
 create table if not exists staff_profiles (
   id integer primary key autoincrement,
   user_id integer not null unique references users(id),
@@ -186,6 +194,8 @@ create table if not exists audit_logs (
 );
 
 create index if not exists idx_users_role_id on users(role_id);
+create index if not exists idx_user_sessions_user_id on user_sessions(user_id);
+create index if not exists idx_user_sessions_expires_at on user_sessions(expires_at);
 create index if not exists idx_customer_profiles_phone on customer_profiles(phone);
 create index if not exists idx_service_sessions_customer_id on service_sessions(customer_id);
 create index if not exists idx_service_sessions_primary_staff_id on service_sessions(primary_staff_id);
