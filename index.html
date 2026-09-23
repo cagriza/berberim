@@ -110,7 +110,7 @@
           </article>
         </section>
 
-        <section class="demo-switcher" aria-label="Demo rol seçimi" data-demo-scope="owner admin">
+        <section class="demo-switcher" aria-label="Demo rol seçimi" data-demo-scope="admin">
           <div>
             <span class="panel-kicker">Demo görünümü</span>
             <strong>Hangi rolün ne gördüğünü seçerek kontrol et.</strong>
@@ -124,7 +124,7 @@
           </div>
         </section>
 
-        <section class="access-preview" aria-label="Rol bazlı giriş demosu" data-demo-scope="owner admin">
+        <section class="access-preview" aria-label="Rol bazlı giriş demosu" data-demo-scope="admin">
           <div class="access-preview-copy">
             <p class="eyebrow">Giriş demosu</p>
             <h2>Kullanıcı seç, ekran yetkileri ona göre açılsın.</h2>
@@ -152,7 +152,7 @@
           </div>
         </section>
 
-        <section class="workspace" id="membership" aria-label="Üyelik panosu" data-demo-scope="customer owner admin">
+        <section class="workspace" id="membership" aria-label="Üyelik panosu" data-demo-scope="customer">
           <div class="section-heading">
             <p class="eyebrow">Seçici erişim</p>
             <h2>Kalabalık saat listeleri yerine sakin, kontrollü ve üyeye özel bir akış.</h2>
@@ -302,7 +302,7 @@
           </div>
         </section>
 
-        <section class="levels" id="levels" aria-label="Berberim Club üyelik seviyeleri" data-demo-scope="customer owner admin">
+        <section class="levels" id="levels" aria-label="Berberim Club üyelik seviyeleri" data-demo-scope="customer">
           <div class="section-heading">
             <p class="eyebrow">Üyelik seviyeleri</p>
             <h2>Seviye, üyeyi sınırlamak için değil; doğru seti doğru öncelikle açmak için kullanılır.</h2>
@@ -467,7 +467,7 @@
           </div>
         </section>
 
-        <section class="roles" id="roles" aria-label="Rol bazlı ekran kurgusu" data-demo-scope="owner admin">
+        <section class="roles" id="roles" aria-label="Rol bazlı ekran kurgusu" data-demo-scope="admin">
           <div class="section-heading">
             <p class="eyebrow">Rol bazlı erişim</p>
             <h2>Patron her şeyi görür; çalışan yalnızca kendi işi, kendi tahsilatı ve kendi hesabıyla çalışır.</h2>
@@ -539,7 +539,7 @@
         <section class="ops" id="ops" aria-label="İşletme kontrol ekranı" data-demo-scope="owner admin master">
           <div class="section-heading" data-demo-scope="owner admin">
             <p class="eyebrow">İşletme paneli</p>
-            <h2>Usta, günü tek bakışta görür: işlem, hasılat, ekip ve gelen üye trafiği.</h2>
+            <h2>İşletme ekranı sekmelere ayrıldı: günlük durum, müşteriler, ekip, finans ve fiyat/stok.</h2>
           </div>
           <div class="owner-tabs" data-demo-scope="owner admin" aria-label="Patron ekran bölümleri">
             <button class="selected" type="button" data-owner-tab="overview">Genel</button>
@@ -788,7 +788,7 @@
                 </div>
               </div>
             </article>
-            <article class="panel checkout-panel" data-demo-scope="master owner">
+            <article class="panel checkout-panel" data-demo-scope="master owner" data-owner-panel="finance">
               <div class="panel-heading">
                 <span class="panel-kicker">Usta ekranı</span>
                 <h3>İşlem bitince ödeme kapat</h3>
@@ -835,7 +835,7 @@
             </article>
           </div>
           <div class="role-screen-layout" aria-label="Örnek rol ekranları">
-            <article class="panel" data-demo-scope="admin">
+            <article class="panel" data-demo-scope="admin" data-owner-panel="team">
               <div class="panel-heading">
                 <span class="panel-kicker">Admin paneli</span>
                 <h3>Yetki ve sistem ayarları</h3>
@@ -903,7 +903,7 @@
               <p class="microcopy" id="slotFeedback">Seanslar örnek veriyle gösteriliyor.</p>
             </article>
           </div>
-          <section class="calendar-panel" aria-label="Kontrollü seans takvimi" data-demo-scope="owner admin master customer">
+          <section class="calendar-panel" aria-label="Kontrollü seans takvimi" data-demo-scope="owner admin master customer" data-owner-panel="customers">
             <div class="section-heading compact-heading">
               <p class="eyebrow">Takvim</p>
               <h2>Herkese açık randevu değil; içeriden yönetilen kontrollü seans planı.</h2>
@@ -950,7 +950,7 @@
                 <div><span>Pedikür</span><strong id="breakdownPedicure">2</strong></div>
               </div>
             </article>
-            <article class="panel" data-demo-scope="owner admin master">
+            <article class="panel" data-demo-scope="owner admin master" data-owner-panel="team">
               <div class="panel-heading">
                 <span class="panel-kicker">Ekip durumu</span>
                 <h3>Çalışanlar</h3>
@@ -987,7 +987,7 @@
                 </div>
               </div>
             </article>
-            <article class="panel" data-demo-scope="master owner">
+            <article class="panel" data-demo-scope="master owner" data-owner-panel="customers">
               <div class="panel-heading">
                 <span class="panel-kicker">Gün akışı</span>
                 <h3>Sıradaki üyeler</h3>
@@ -1012,7 +1012,7 @@
             </article>
           </div>
           <div class="live-floor" aria-label="Anlık dükkan durumu">
-            <article class="panel" data-demo-scope="owner admin master">
+            <article class="panel" data-demo-scope="owner admin master" data-owner-panel="overview">
               <div class="panel-heading">
                 <span class="panel-kicker">Anlık durum</span>
                 <h3>Dükkân akışı</h3>
@@ -1024,7 +1024,7 @@
                 <div><strong id="floorOpenPayment">1</strong><span>Tahsilat açık</span></div>
               </div>
             </article>
-            <article class="panel panel-dark" data-demo-scope="owner master">
+            <article class="panel panel-dark" data-demo-scope="owner master" data-owner-panel="customers">
               <div class="panel-heading">
                 <span class="panel-kicker">Üye hızlı kartları</span>
                 <h3>Bugünkü kayıtlar</h3>
